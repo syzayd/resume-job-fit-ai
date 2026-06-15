@@ -19,8 +19,9 @@ from pydantic import BaseModel, Field
 
 load_dotenv()
 
-# Free-tier friendly default; override with GEMINI_MODEL if you like (e.g. gemini-2.5-flash).
-MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+# Free-tier friendly default. gemini-2.5-flash-lite is reliable on the free tier; the heavier
+# gemini-2.5-flash can return 503s under load. Override with GEMINI_MODEL if you prefer.
+MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-lite")
 MAX_INPUT_CHARS = 6000  # guard against runaway usage; we warn rather than truncate
 
 
