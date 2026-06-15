@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import os
 import time
-from typing import List
+from typing import List, NoReturn
 
 from dotenv import load_dotenv
 from google import genai
@@ -25,7 +25,7 @@ load_dotenv()
 # gemini-2.5-flash can return 503s under load. Override with GEMINI_MODEL if you prefer.
 MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-lite")
 MAX_INPUT_CHARS = 6000  # guard against runaway usage; we warn rather than truncate
-_MAX_RETRIES = 3        # auto-retry on transient 503s before surfacing an error
+_MAX_RETRIES = 3        # auto-retry on transient 5xx / 429s before surfacing an error
 
 
 class AnalyzerError(Exception):
@@ -124,7 +124,7 @@ def _client() -> genai.Client:
 
 
 def _generate(client: genai.Client, prompt: str, system: str, schema) -> object:
-    """Call Gemini with structured output and auto-retry on transient 503s."""
+    """Call Gemini with structured output and auto-retry on transient 5xx / 429s."""
     last_err: Exception | None = None
     for attempt in range(_MAX_RETRIES):
         try:
@@ -139,14 +139,20 @@ def _generate(client: genai.Client, prompt: str, system: str, schema) -> object:
                 ),
             )
             return response
-        except genai_errors.ServerError as exc:
+        except genai_errors.ClientError as exc:
+            if getattr(exc, "code", None) != 429:
+                raise  # non-429 client errors are not transient
             last_err = exc
             if attempt < _MAX_RETRIES - 1:
                 time.sleep(4 * (attempt + 1))  # 4s, 8s before final attempt
+        except genai_errors.ServerError as exc:
+            last_err = exc
+            if attempt < _MAX_RETRIES - 1:
+                time.sleep(4 * (attempt + 1))
     raise last_err  # type: ignore[misc]
 
 
-def _handle_api_error(exc: Exception) -> None:
+def _handle_api_error(exc: Exception) -> NoReturn:
     """Translate SDK exceptions into user-friendly AnalyzerErrors."""
     if isinstance(exc, genai_errors.ClientError):
         msg = str(getattr(exc, "message", "") or exc).lower()
@@ -195,7 +201,7 @@ def analyze(resume: str, job: str) -> Analysis:
     except AnalyzerError:
         raise
     except Exception as exc:
-        _handle_api_error(exc)
+        raise _handle_api_error(exc)
 
 
 def generate_cover_letter(resume: str, job: str) -> CoverLetter:
@@ -214,4 +220,4 @@ def generate_cover_letter(resume: str, job: str) -> CoverLetter:
     except AnalyzerError:
         raise
     except Exception as exc:
-        _handle_api_error(exc)
+        raise _handle_api_error(exc)
