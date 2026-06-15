@@ -18,8 +18,8 @@ Built to answer a real question every applicant has: *"How well does my resume a
 
 ## Tech
 
-- **Claude Sonnet 4.6** via the official `anthropic` Python SDK
-- **Structured outputs** (Pydantic schema) so the model returns clean, validated JSON every time
+- **Google Gemini** (free tier) via the official `google-genai` Python SDK
+- **Structured outputs** — a Pydantic schema passed as Gemini's `response_schema`, so the model returns clean, validated JSON every time
 - **Streamlit** front end — no HTML/JS needed
 - Defensive error handling (missing/invalid key, rate limits, oversized input, malformed responses)
 
@@ -33,7 +33,7 @@ python -m venv venv
 venv\Scripts\activate            # Windows  (use: source venv/bin/activate  on macOS/Linux)
 pip install -r requirements.txt
 
-cp .env.example .env             # then paste your key from console.anthropic.com
+cp .env.example .env             # then paste your FREE key from aistudio.google.com/apikey
 streamlit run app.py
 ```
 
@@ -42,7 +42,7 @@ Then click **Load sample → Analyze fit** to see it work instantly.
 ## What I learned building this
 
 - **Structured outputs** turn an LLM from "hope it returns JSON" into a reliable component — defining a
-  Pydantic schema and using `messages.parse` removed all the brittle string-parsing I'd normally need.
+  Pydantic schema and passing it as Gemini's `response_schema` removed all the brittle string-parsing I'd normally need.
 - **Prompt design matters more than model size** — the single most important instruction was *"never invent
   experience the candidate doesn't have,"* which keeps the rewrites honest and usable.
 - **Good error handling is a feature** — most of the polish was making every failure (bad key, rate limit,

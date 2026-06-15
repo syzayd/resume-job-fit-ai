@@ -80,7 +80,7 @@ def render_results(result: Analysis) -> None:
 
 st.title("🎯 Resume Job-Fit AI")
 st.caption("Paste a job description and your resume → get a fit score, keyword gaps, and tailored rewrites. "
-           "Powered by Claude Sonnet 4.6.")
+           "Powered by Google Gemini.")
 
 if "resume" not in st.session_state:
     st.session_state.resume = ""
