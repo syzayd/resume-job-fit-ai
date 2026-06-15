@@ -1,14 +1,16 @@
 """Core analysis logic: compares a resume against a job description using Google Gemini.
 
 Returns a validated `Analysis` object (Pydantic) describing fit score, keyword
-gaps, tailored bullet rewrites, and ATS tips. Kept UI-agnostic so it can be
-reused from Streamlit, a CLI, or tests. Uses Gemini's free tier.
+gaps, tailored bullet rewrites, and ATS tips. Also generates cover letters.
+Kept UI-agnostic so it can be reused from Streamlit, a CLI, or tests.
+Uses Gemini's free tier (no credit card needed).
 """
 
 from __future__ import annotations
 
 import json
 import os
+import time
 from typing import List
 
 from dotenv import load_dotenv
@@ -23,13 +25,14 @@ load_dotenv()
 # gemini-2.5-flash can return 503s under load. Override with GEMINI_MODEL if you prefer.
 MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-lite")
 MAX_INPUT_CHARS = 6000  # guard against runaway usage; we warn rather than truncate
+_MAX_RETRIES = 3        # auto-retry on transient 503s before surfacing an error
 
 
 class AnalyzerError(Exception):
     """User-facing error the UI can display verbatim."""
 
 
-# --- Output schema -----------------------------------------------------------
+# --- Output schemas ----------------------------------------------------------
 
 class BulletRewrite(BaseModel):
     original: str = Field(description="A weak bullet taken from the resume.")
@@ -46,9 +49,15 @@ class Analysis(BaseModel):
     ats_tips: List[str] = Field(description="Specific applicant-tracking-system tips (exact phrases to add, etc.).")
 
 
+class CoverLetter(BaseModel):
+    opening: str = Field(description="Opening paragraph: hook + specific role + why this company.")
+    body: str = Field(description="Middle paragraph: 2-3 concrete skills/projects from the resume that directly match the job requirements.")
+    closing: str = Field(description="Closing paragraph: enthusiasm, call to action, professional sign-off.")
+
+
 # --- Prompts -----------------------------------------------------------------
 
-SYSTEM_PROMPT = (
+_ANALYSIS_SYSTEM = (
     "You are a senior technical recruiter and ATS (applicant tracking system) screening expert. "
     "You assess how well a resume fits a specific job. You are specific, honest, and constructive. "
     "Critically: you NEVER invent experience, skills, or metrics the candidate does not have. "
@@ -56,8 +65,15 @@ SYSTEM_PROMPT = (
     "alignment, and where a real number is unknown, use a clear placeholder like [X] rather than inventing one."
 )
 
+_COVER_LETTER_SYSTEM = (
+    "You are a professional career coach writing tailored cover letters. "
+    "You write in first-person from the candidate's perspective. "
+    "You NEVER fabricate experience, skills, or projects not present in the resume. "
+    "Keep each paragraph concise and specific — no filler phrases like 'I am excited to apply'."
+)
 
-def _build_user_prompt(resume: str, job: str) -> str:
+
+def _build_analysis_prompt(resume: str, job: str) -> str:
     return (
         "Analyze how well the following resume fits the job description.\n\n"
         "=== JOB DESCRIPTION ===\n"
@@ -70,7 +86,22 @@ def _build_user_prompt(resume: str, job: str) -> str:
     )
 
 
-# --- Public API --------------------------------------------------------------
+def _build_cover_letter_prompt(resume: str, job: str) -> str:
+    return (
+        "Write a concise, tailored cover letter for this candidate applying to this specific job.\n\n"
+        "=== JOB DESCRIPTION ===\n"
+        f"{job}\n\n"
+        "=== CANDIDATE RESUME ===\n"
+        f"{resume}\n\n"
+        "Rules:\n"
+        "- Three paragraphs: opening, body (skills match), closing.\n"
+        "- Only reference projects and skills that actually appear in the resume.\n"
+        "- Be specific and concrete — reference the job title and at least two requirements.\n"
+        "- No generic filler. No invented metrics. Placeholders like [Company Name] are fine."
+    )
+
+
+# --- Internal helpers --------------------------------------------------------
 
 def _validate(resume: str, job: str) -> None:
     if not resume.strip() or not job.strip():
@@ -92,32 +123,32 @@ def _client() -> genai.Client:
     return genai.Client(api_key=api_key)
 
 
-def analyze(resume: str, job: str) -> Analysis:
-    """Compare resume against job and return a validated Analysis.
+def _generate(client: genai.Client, prompt: str, system: str, schema) -> object:
+    """Call Gemini with structured output and auto-retry on transient 503s."""
+    last_err: Exception | None = None
+    for attempt in range(_MAX_RETRIES):
+        try:
+            response = client.models.generate_content(
+                model=MODEL,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=system,
+                    response_mime_type="application/json",
+                    response_schema=schema,
+                    temperature=0.3,
+                ),
+            )
+            return response
+        except genai_errors.ServerError as exc:
+            last_err = exc
+            if attempt < _MAX_RETRIES - 1:
+                time.sleep(4 * (attempt + 1))  # 4s, 8s before final attempt
+    raise last_err  # type: ignore[misc]
 
-    Raises AnalyzerError with a friendly message on any expected failure.
-    """
-    _validate(resume, job)
-    client = _client()
-    user_prompt = _build_user_prompt(resume, job)
 
-    try:
-        # Primary path: schema-validated structured output (same Pydantic model Gemini fills in).
-        response = client.models.generate_content(
-            model=MODEL,
-            contents=user_prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=SYSTEM_PROMPT,
-                response_mime_type="application/json",
-                response_schema=Analysis,
-                temperature=0.3,
-            ),
-        )
-        if isinstance(response.parsed, Analysis):
-            return response.parsed
-        # Fallback: parse the raw text ourselves if structured parsing returned nothing.
-        return _parse_from_text(response.text)
-    except genai_errors.ClientError as exc:
+def _handle_api_error(exc: Exception) -> None:
+    """Translate SDK exceptions into user-friendly AnalyzerErrors."""
+    if isinstance(exc, genai_errors.ClientError):
         msg = str(getattr(exc, "message", "") or exc).lower()
         code = getattr(exc, "code", None)
         if code in (401, 403) or any(t in msg for t in ("api key", "api_key", "unauthenticated", "permission")):
@@ -128,20 +159,59 @@ def analyze(resume: str, job: str) -> Analysis:
         if code == 429 or any(t in msg for t in ("quota", "rate", "resource_exhausted")):
             raise AnalyzerError("Hit the free-tier rate limit. Wait a minute and try again.")
         raise AnalyzerError(f"The Gemini API rejected the request: {getattr(exc, 'message', exc)}")
-    except genai_errors.ServerError:
-        raise AnalyzerError("Gemini is having a server issue right now. Try again shortly.")
-    except genai_errors.APIError as exc:
-        raise AnalyzerError(f"Gemini API error: {getattr(exc, 'message', exc)}")
+    if isinstance(exc, genai_errors.ServerError):
+        raise AnalyzerError("Gemini is unavailable right now. Please try again in a moment.")
+    raise AnalyzerError(f"Gemini API error: {getattr(exc, 'message', exc)}")
 
 
-def _parse_from_text(text: str | None) -> Analysis:
-    """Defensive fallback: extract the first JSON object from the response text."""
+def _parse_from_text(text: str | None, schema: type) -> object:
+    """Defensive fallback: extract the first JSON object from raw text."""
     if not text:
         raise AnalyzerError("The model returned an empty response. Please try again.")
     start, end = text.find("{"), text.rfind("}")
     if start == -1 or end == -1:
-        raise AnalyzerError("Could not read the analysis from the model response. Please try again.")
+        raise AnalyzerError("Could not read the response from the model. Please try again.")
     try:
-        return Analysis(**json.loads(text[start : end + 1]))
+        return schema(**json.loads(text[start : end + 1]))
     except (json.JSONDecodeError, ValueError):
         raise AnalyzerError("The model response was malformed. Please try again.")
+
+
+# --- Public API --------------------------------------------------------------
+
+def analyze(resume: str, job: str) -> Analysis:
+    """Compare resume against job and return a validated Analysis.
+
+    Raises AnalyzerError with a friendly message on any expected failure.
+    Automatically retries up to 3 times on transient server errors.
+    """
+    _validate(resume, job)
+    client = _client()
+    try:
+        response = _generate(client, _build_analysis_prompt(resume, job), _ANALYSIS_SYSTEM, Analysis)
+        if isinstance(response.parsed, Analysis):
+            return response.parsed
+        return _parse_from_text(response.text, Analysis)  # type: ignore[arg-type]
+    except AnalyzerError:
+        raise
+    except Exception as exc:
+        _handle_api_error(exc)
+
+
+def generate_cover_letter(resume: str, job: str) -> CoverLetter:
+    """Generate a tailored cover letter for the given resume + job.
+
+    Raises AnalyzerError with a friendly message on any expected failure.
+    Automatically retries up to 3 times on transient server errors.
+    """
+    _validate(resume, job)
+    client = _client()
+    try:
+        response = _generate(client, _build_cover_letter_prompt(resume, job), _COVER_LETTER_SYSTEM, CoverLetter)
+        if isinstance(response.parsed, CoverLetter):
+            return response.parsed
+        return _parse_from_text(response.text, CoverLetter)  # type: ignore[arg-type]
+    except AnalyzerError:
+        raise
+    except Exception as exc:
+        _handle_api_error(exc)
