@@ -1,0 +1,28 @@
+Zaid Ali Syed
+Aspiring AI / Python Developer
+Email: example@email.com | LinkedIn: /in/zaid-ali-syed
+
+SUMMARY
+Self-taught developer focused on AI and automation. Comfortable with Python and
+building small tools that solve real problems. Learning in public and shipping projects.
+
+SKILLS
+Python, basic SQL, Git, REST APIs, prompt engineering, pandas, HTML/CSS
+
+PROJECTS
+LinkedIn Content Engine
+- Made a tool that helps write daily posts
+- Used an AI API to generate text
+- Posts went out every day
+
+Resume Job-Fit AI
+- Built an app that scores resumes against job descriptions
+- Worked with the Claude API and Streamlit
+
+EXPERIENCE
+Freelance (self-directed)
+- Did some automation scripts for personal use
+- Helped friends with small Python tasks
+
+EDUCATION
+Bachelor's degree (in progress)

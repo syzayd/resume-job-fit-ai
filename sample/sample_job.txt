@@ -1,0 +1,21 @@
+Junior AI Engineer
+
+We're hiring a Junior AI Engineer to help build LLM-powered features for our product.
+
+Responsibilities
+- Build and ship Python services that call large language model APIs
+- Design prompts and evaluate output quality
+- Work with REST APIs and integrate third-party services
+- Write clean, tested code and collaborate via Git/GitHub
+- Build simple internal tools and dashboards
+
+Requirements
+- Strong Python fundamentals
+- Hands-on experience with at least one LLM API (OpenAI, Anthropic, etc.)
+- Understanding of prompt engineering and structured outputs (JSON)
+- Familiarity with Git and pull-request workflows
+- Bonus: experience with Docker, CI/CD, vector databases / RAG, and unit testing (pytest)
+
+Nice to have
+- Public GitHub portfolio or projects built in public
+- Basic SQL and data handling with pandas
