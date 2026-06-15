@@ -3,7 +3,7 @@
 Paste a **job description** and your **resume** → get an instant **fit score (0–100)**, the
 **keywords you're missing**, and **AI-rewritten resume bullets** tailored to the role.
 
-Built to answer a real question every applicant has: *"How well does my resume actually match this job — and what should I change?"*
+Built to answer a real question every applicant has: *"How well does my resume actually match this job - and what should I change?"*
 
 ![Resume Job-Fit AI screenshot](docs/screenshot.png)
 
@@ -13,14 +13,14 @@ Built to answer a real question every applicant has: *"How well does my resume a
 
 - **Fit score (0–100)** with an honest one-line verdict
 - **Matched vs. missing keywords** so you see exactly which skills to surface
-- **Tailored bullet rewrites** — your real bullets, rewritten for impact and keyword alignment (never fabricated)
-- **ATS tips** — concrete phrases to add so applicant-tracking systems don't filter you out
+- **Tailored bullet rewrites** - your real bullets, rewritten for impact and keyword alignment (never fabricated)
+- **ATS tips** - concrete phrases to add so applicant-tracking systems don't filter you out
 
 ## Tech
 
 - **Google Gemini** (free tier) via the official `google-genai` Python SDK
-- **Structured outputs** — a Pydantic schema passed as Gemini's `response_schema`, so the model returns clean, validated JSON every time
-- **Streamlit** front end — no HTML/JS needed
+- **Structured outputs** - a Pydantic schema passed as Gemini's `response_schema`, so the model returns clean, validated JSON every time
+- **Streamlit** front end - no HTML/JS needed
 - Defensive error handling (missing/invalid key, rate limits, oversized input, malformed responses)
 
 ## Run it in 60 seconds
@@ -41,11 +41,11 @@ Then click **Load sample → Analyze fit** to see it work instantly.
 
 ## What I learned building this
 
-- **Structured outputs** turn an LLM from "hope it returns JSON" into a reliable component — defining a
+- **Structured outputs** turn an LLM from "hope it returns JSON" into a reliable component - defining a
   Pydantic schema and passing it as Gemini's `response_schema` removed all the brittle string-parsing I'd normally need.
-- **Prompt design matters more than model size** — the single most important instruction was *"never invent
+- **Prompt design matters more than model size** - the single most important instruction was *"never invent
   experience the candidate doesn't have,"* which keeps the rewrites honest and usable.
-- **Good error handling is a feature** — most of the polish was making every failure (bad key, rate limit,
+- **Good error handling is a feature** - most of the polish was making every failure (bad key, rate limit,
   empty input) show a friendly message instead of a stack trace.
 
 ## Roadmap
