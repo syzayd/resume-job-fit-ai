@@ -1,8 +1,8 @@
-"""Core analysis logic: compares a resume against a job description using Claude.
+"""Core analysis logic: compares a resume against a job description using Google Gemini.
 
 Returns a validated `Analysis` object (Pydantic) describing fit score, keyword
 gaps, tailored bullet rewrites, and ATS tips. Kept UI-agnostic so it can be
-reused from Streamlit, a CLI, or tests.
+reused from Streamlit, a CLI, or tests. Uses Gemini's free tier.
 """
 
 from __future__ import annotations
@@ -11,14 +11,17 @@ import json
 import os
 from typing import List
 
-import anthropic
 from dotenv import load_dotenv
+from google import genai
+from google.genai import errors as genai_errors
+from google.genai import types
 from pydantic import BaseModel, Field
 
 load_dotenv()
 
-MODEL = "claude-sonnet-4-6"
-MAX_INPUT_CHARS = 6000  # guard against runaway cost; we warn rather than truncate
+# Free-tier friendly default; override with GEMINI_MODEL if you like (e.g. gemini-2.5-flash).
+MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+MAX_INPUT_CHARS = 6000  # guard against runaway usage; we warn rather than truncate
 
 
 class AnalyzerError(Exception):
@@ -78,13 +81,14 @@ def _validate(resume: str, job: str) -> None:
         )
 
 
-def _client() -> anthropic.Anthropic:
-    if not os.environ.get("ANTHROPIC_API_KEY"):
+def _client() -> genai.Client:
+    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    if not api_key:
         raise AnalyzerError(
-            "No ANTHROPIC_API_KEY found. Create a key at https://console.anthropic.com/ "
-            "and add it to a .env file as ANTHROPIC_API_KEY=your-key-here."
+            "No GEMINI_API_KEY found. Create a FREE key (no credit card needed) at "
+            "https://aistudio.google.com/apikey and add it to a .env file as GEMINI_API_KEY=your-key-here."
         )
-    return anthropic.Anthropic()
+    return genai.Client(api_key=api_key)
 
 
 def analyze(resume: str, job: str) -> Analysis:
@@ -97,39 +101,42 @@ def analyze(resume: str, job: str) -> Analysis:
     user_prompt = _build_user_prompt(resume, job)
 
     try:
-        # Primary path: schema-validated structured output.
-        response = client.messages.parse(
+        # Primary path: schema-validated structured output (same Pydantic model Gemini fills in).
+        response = client.models.generate_content(
             model=MODEL,
-            max_tokens=2000,
-            system=SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": user_prompt}],
-            output_format=Analysis,
+            contents=user_prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=SYSTEM_PROMPT,
+                response_mime_type="application/json",
+                response_schema=Analysis,
+                temperature=0.3,
+            ),
         )
-        if response.parsed_output is not None:
-            return response.parsed_output
+        if isinstance(response.parsed, Analysis):
+            return response.parsed
         # Fallback: parse the raw text ourselves if structured parsing returned nothing.
-        return _parse_from_text(response)
-    except anthropic.AuthenticationError:
-        raise AnalyzerError("Your ANTHROPIC_API_KEY looks invalid. Double-check it in your .env file.")
-    except anthropic.RateLimitError:
-        raise AnalyzerError("The API is rate-limited right now. Wait a few seconds and try again.")
-    except anthropic.BadRequestError as exc:
+        return _parse_from_text(response.text)
+    except genai_errors.ClientError as exc:
         msg = str(getattr(exc, "message", "") or exc).lower()
-        if any(term in msg for term in ("credit balance", "billing", "too low")):
+        code = getattr(exc, "code", None)
+        if code in (401, 403) or any(t in msg for t in ("api key", "api_key", "unauthenticated", "permission")):
             raise AnalyzerError(
-                "Your Anthropic account is out of API credits. Add credits at "
-                "https://console.anthropic.com/ → Plans & Billing, then try again."
+                "Your GEMINI_API_KEY looks invalid. Get a free key at "
+                "https://aistudio.google.com/apikey and check your .env file."
             )
-        raise AnalyzerError(f"The API rejected the request: {getattr(exc, 'message', exc)}")
-    except anthropic.APIConnectionError:
-        raise AnalyzerError("Network error reaching the Claude API. Check your internet connection.")
-    except anthropic.APIStatusError as exc:
-        raise AnalyzerError(f"The Claude API returned an error ({exc.status_code}). Try again shortly.")
+        if code == 429 or any(t in msg for t in ("quota", "rate", "resource_exhausted")):
+            raise AnalyzerError("Hit the free-tier rate limit. Wait a minute and try again.")
+        raise AnalyzerError(f"The Gemini API rejected the request: {getattr(exc, 'message', exc)}")
+    except genai_errors.ServerError:
+        raise AnalyzerError("Gemini is having a server issue right now. Try again shortly.")
+    except genai_errors.APIError as exc:
+        raise AnalyzerError(f"Gemini API error: {getattr(exc, 'message', exc)}")
 
 
-def _parse_from_text(response) -> Analysis:
+def _parse_from_text(text: str | None) -> Analysis:
     """Defensive fallback: extract the first JSON object from the response text."""
-    text = next((b.text for b in response.content if b.type == "text"), "")
+    if not text:
+        raise AnalyzerError("The model returned an empty response. Please try again.")
     start, end = text.find("{"), text.rfind("}")
     if start == -1 or end == -1:
         raise AnalyzerError("Could not read the analysis from the model response. Please try again.")
