@@ -113,6 +113,14 @@ def analyze(resume: str, job: str) -> Analysis:
         raise AnalyzerError("Your ANTHROPIC_API_KEY looks invalid. Double-check it in your .env file.")
     except anthropic.RateLimitError:
         raise AnalyzerError("The API is rate-limited right now. Wait a few seconds and try again.")
+    except anthropic.BadRequestError as exc:
+        msg = str(getattr(exc, "message", "") or exc).lower()
+        if any(term in msg for term in ("credit balance", "billing", "too low")):
+            raise AnalyzerError(
+                "Your Anthropic account is out of API credits. Add credits at "
+                "https://console.anthropic.com/ → Plans & Billing, then try again."
+            )
+        raise AnalyzerError(f"The API rejected the request: {getattr(exc, 'message', exc)}")
     except anthropic.APIConnectionError:
         raise AnalyzerError("Network error reaching the Claude API. Check your internet connection.")
     except anthropic.APIStatusError as exc:
