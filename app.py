@@ -3,6 +3,7 @@
 Run: streamlit run app.py
 """
 
+import html as _html
 from pathlib import Path
 
 import streamlit as st
@@ -37,7 +38,7 @@ def chips(items: list[str], bg: str, fg: str) -> None:
         return
     html = " ".join(
         f"<span style='background:{bg};color:{fg};padding:4px 10px;border-radius:14px;"
-        f"font-size:0.85rem;margin:2px;display:inline-block;'>{item}</span>"
+        f"font-size:0.85rem;margin:2px;display:inline-block;'>{_html.escape(item)}</span>"
         for item in items
     )
     st.markdown(html, unsafe_allow_html=True)
@@ -95,7 +96,7 @@ def render_analysis(result: Analysis) -> None:
         unsafe_allow_html=True,
     )
     st.markdown(
-        f"<p style='text-align:center;font-size:1.1rem;'>{result.verdict}</p>",
+        f"<p style='text-align:center;font-size:1.1rem;'>{_html.escape(result.verdict)}</p>",
         unsafe_allow_html=True,
     )
     st.divider()
