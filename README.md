@@ -5,7 +5,7 @@ Paste a **job description** and your **resume** → get an instant **fit score (
 
 Built to answer a real question every applicant has: *"How well does my resume actually match this job — and what should I change?"*
 
-> 📸 *Demo screenshot coming soon — clone it and click **Load sample → Analyze fit** to try it in seconds.*
+![Resume Job-Fit AI screenshot](docs/screenshot.png)
 
 ---
 
