@@ -5,6 +5,7 @@ Paste a **job description** and your **resume** (or upload a PDF) → get an ins
 Built to answer a real question every applicant has: *"How well does my resume actually match this job — and what do I do about it?"*
 
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://resume-job-fit-ai.streamlit.app)
+[![CI](https://github.com/syzayd/resume-job-fit-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/syzayd/resume-job-fit-ai/actions/workflows/ci.yml)
 
 ![Resume Job-Fit AI screenshot](docs/screenshot.png)
 
@@ -23,8 +24,9 @@ Built to answer a real question every applicant has: *"How well does my resume a
 | **Skills gap roadmap** | Prioritized gaps (High / Medium / Low), named courses + providers, quick wins this week |
 | **LinkedIn optimizer** | AI-generated headline, About section, skills to add, and profile tips — all role-specific and copyable |
 | **Generate all sections ✨** | One button to generate every AI section at once — no tab-by-tab clicking |
+| **Multi-job comparison** | Paste 2–3 job descriptions — get a ranked table of which role fits best, strengths vs gaps per job, and a suggested apply order |
 | **PDF upload** | Upload your resume PDF — text is extracted automatically |
-| **Download full analysis** | Export everything (score, cover letter, interview prep, roadmap, LinkedIn) as a `.txt` file |
+| **Download (.txt / .docx)** | Export everything as plain text or a formatted Word document |
 
 ---
 
@@ -126,10 +128,10 @@ resume-job-fit-ai/
 - [x] Copy-to-clipboard for cover letter and interview answers
 - [x] "Generate all sections" one-click button
 - [x] Streamlit Community Cloud deploy support
-- [ ] Update demo screenshot (screenshot predates 5-tab UI)
-- [ ] Multi-job comparison (rank 2–3 jobs against your resume)
-- [ ] DOCX export (Word document)
-- [ ] Tests + GitHub Actions CI
+- [x] Multi-job comparison (rank 2–3 jobs against your resume)
+- [x] DOCX export (formatted Word document)
+- [x] Tests + GitHub Actions CI
+- [ ] Update demo screenshot (screenshot predates multi-page UI)
 - [ ] Job application tracker (SQLite — save & compare past analyses)
 
 ---
