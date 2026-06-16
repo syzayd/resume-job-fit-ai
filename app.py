@@ -21,6 +21,7 @@ from analyzer import (
     analyze, generate_cover_letter, generate_interview_prep, generate_linkedin_profile,
     generate_skills_roadmap,
 )
+from db import save_application
 
 SAMPLE_DIR = Path(__file__).parent / "sample"
 
@@ -344,6 +345,7 @@ def _init() -> None:
         "interview_prep": None,
         "skills_roadmap": None,
         "linkedin_profile": None,
+        "tracker_saved": False,
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -423,6 +425,7 @@ if analyze_clicked:
             st.session_state.interview_prep = None
             st.session_state.skills_roadmap = None
             st.session_state.linkedin_profile = None
+            st.session_state.tracker_saved = False
         except AnalyzerError as err:
             st.error(str(err))
 
@@ -562,6 +565,40 @@ if st.session_state.result:
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             use_container_width=True,
         )
+
+    # Save to tracker
+    st.divider()
+    if st.session_state.tracker_saved:
+        st.success("Saved to Job Tracker! View it in the **Job Tracker** page (sidebar).")
+    else:
+        with st.form("save_to_tracker"):
+            _tc1, _tc2, _tc3 = st.columns([2, 2, 1])
+            with _tc1:
+                _job_title = st.text_input(
+                    "Job title",
+                    placeholder="e.g. Senior Python Engineer",
+                )
+            with _tc2:
+                _company = st.text_input(
+                    "Company (optional)",
+                    placeholder="e.g. Acme Corp",
+                )
+            with _tc3:
+                st.markdown("<br>", unsafe_allow_html=True)
+                _save_clicked = st.form_submit_button(
+                    "Save to tracker 📋", use_container_width=True
+                )
+            if _save_clicked:
+                if not _job_title.strip():
+                    st.warning("Enter a job title to save.")
+                else:
+                    save_application(
+                        job_title=_job_title,
+                        score=result.score,
+                        company=_company,
+                    )
+                    st.session_state.tracker_saved = True
+                    st.rerun()
 
 st.divider()
 st.caption(
