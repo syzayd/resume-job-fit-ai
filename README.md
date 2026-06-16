@@ -19,8 +19,9 @@ Built to answer a real question every applicant has: *"How well does my resume a
 | **Cover letter** | Three-paragraph, role-specific draft grounded in your actual resume |
 | **Interview prep** | 5–7 tailored questions with why-asked context and tips from your real background |
 | **Skills gap roadmap** | Prioritized gaps (High / Medium / Low), named courses + providers, quick wins this week |
+| **LinkedIn optimizer** | AI-generated headline, About section, skills to add, and profile tips — all role-specific and copyable |
 | **PDF upload** | Upload your resume PDF — text is extracted automatically |
-| **Download full analysis** | Export everything (score, cover letter, interview prep, roadmap) as a `.txt` file |
+| **Download full analysis** | Export everything (score, cover letter, interview prep, roadmap, LinkedIn) as a `.txt` file |
 
 ---
 
@@ -61,7 +62,7 @@ Then click **Load sample → Analyze fit** to see it work instantly.
 
 ```
 resume-job-fit-ai/
-├── app.py              # Streamlit UI — 4 tabs, PDF upload, session state
+├── app.py              # Streamlit UI — 5 tabs, PDF upload, session state
 ├── analyzer.py         # All Gemini logic — schemas, prompts, retry, error handling
 ├── requirements.txt
 ├── .env.example        # GEMINI_API_KEY=your-key-here  (never commit .env)
@@ -114,7 +115,9 @@ ba46291 refactor: switch from Claude to free Google Gemini
 - [x] Cover letter generator
 - [x] Interview prep tab
 - [x] Skills gap roadmap
-- [ ] Update demo screenshot (screenshot predates the 4-tab UI)
+- [x] LinkedIn profile optimizer (headline + About + skills)
+- [x] Copy-to-clipboard for cover letter and interview answers
+- [ ] Update demo screenshot (screenshot predates the 5-tab UI)
 - [ ] Save & compare past analyses
 - [ ] Side-by-side multi-job comparison
 - [ ] Live hosted demo (Streamlit Community Cloud)
