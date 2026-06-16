@@ -4,6 +4,8 @@ Paste a **job description** and your **resume** (or upload a PDF) → get an ins
 
 Built to answer a real question every applicant has: *"How well does my resume actually match this job — and what do I do about it?"*
 
+**🔗 [Try it live → resume-job-fit-ai.streamlit.app](https://resume-job-fit-ai.streamlit.app)**
+
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://resume-job-fit-ai.streamlit.app)
 [![CI](https://github.com/syzayd/resume-job-fit-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/syzayd/resume-job-fit-ai/actions/workflows/ci.yml)
 
