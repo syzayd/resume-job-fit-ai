@@ -27,6 +27,7 @@ Built to answer a real question every applicant has: *"How well does my resume a
 | **Multi-job comparison** | Paste 2–3 job descriptions — get a ranked table of which role fits best, strengths vs gaps per job, and a suggested apply order |
 | **PDF upload** | Upload your resume PDF — text is extracted automatically |
 | **Download (.txt / .docx)** | Export everything as plain text or a formatted Word document |
+| **Job Application Tracker** | Save any analysis to a local SQLite DB — track status (Applied/Interviewing/Offer/Rejected), add notes, see stats, export CSV |
 
 ---
 
@@ -89,6 +90,13 @@ resume-job-fit-ai/
 ├── .streamlit/
 │   ├── config.toml               # Theme + server settings
 │   └── secrets.toml.example      # Format for Streamlit Cloud secrets
+├── .github/workflows/ci.yml      # GitHub Actions CI (pytest on every push)
+├── pages/
+│   ├── 1_Compare_Jobs.py         # Multi-job comparison page
+│   └── 2_Job_Tracker.py          # Application tracker page
+├── tests/
+│   └── test_analyzer.py          # 26 unit tests (Gemini mocked)
+├── db.py                         # SQLite persistence layer
 ├── docs/
 │   └── screenshot.png
 ├── logs/                         # Build logs per path
@@ -131,8 +139,8 @@ resume-job-fit-ai/
 - [x] Multi-job comparison (rank 2–3 jobs against your resume)
 - [x] DOCX export (formatted Word document)
 - [x] Tests + GitHub Actions CI
+- [x] Job application tracker (SQLite — save, track status, export CSV)
 - [ ] Update demo screenshot (screenshot predates multi-page UI)
-- [ ] Job application tracker (SQLite — save & compare past analyses)
 
 ---
 

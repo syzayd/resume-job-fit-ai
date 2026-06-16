@@ -2,6 +2,9 @@
 .env
 .streamlit/secrets.toml
 
+# SQLite database — user data, not for version control
+job_tracker.db
+
 # Python
 venv/
 __pycache__/
