@@ -128,5 +128,7 @@ else:
 
 st.divider()
 st.caption(
-    "Built in public by Zaid Ali Syed · github.com/syzayd/resume-job-fit-ai"
+    "Built in public by Zaid Ali Syed "
+    "· [Live demo](https://resume-job-fit-ai.streamlit.app) "
+    "· [GitHub](https://github.com/syzayd/resume-job-fit-ai)"
 )

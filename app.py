@@ -603,6 +603,7 @@ if st.session_state.result:
 st.divider()
 st.caption(
     "Built in public by Zaid Ali Syed "
-    "· github.com/syzayd/resume-job-fit-ai "
+    "· [Live demo](https://resume-job-fit-ai.streamlit.app) "
+    "· [GitHub](https://github.com/syzayd/resume-job-fit-ai) "
     "· Rewrites stay truthful to your resume — review before using."
 )
