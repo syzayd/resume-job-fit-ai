@@ -24,7 +24,7 @@ load_dotenv()
 # Free-tier friendly default. gemini-2.5-flash-lite is reliable on the free tier; the heavier
 # gemini-2.5-flash can return 503s under load. Override with GEMINI_MODEL if you prefer.
 MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-lite")
-MAX_INPUT_CHARS = 6000  # guard against runaway usage; we warn rather than truncate
+MAX_INPUT_CHARS = 8000  # guard against runaway usage; we warn rather than truncate
 _MAX_RETRIES = 3        # auto-retry on transient 5xx / 429s before surfacing an error
 
 
@@ -85,6 +85,13 @@ class SkillsRoadmap(BaseModel):
     quick_wins: List[str] = Field(description="2-3 things the candidate can do this week to immediately strengthen their profile.")
 
 
+class LinkedInProfile(BaseModel):
+    headline: str = Field(description="Optimized LinkedIn headline (max 220 characters) — keyword-rich, highlights the candidate's unique value for this type of role.")
+    about: str = Field(description="3-4 paragraph LinkedIn About section in first person — achievement-focused, authentic to the resume, ends with a call to action.")
+    skills_to_add: List[str] = Field(description="Top 8-10 LinkedIn skill keywords to add for the target role.")
+    profile_tips: List[str] = Field(description="3-5 specific, actionable tips to improve this candidate's LinkedIn profile for the target role.")
+
+
 # --- Prompts -----------------------------------------------------------------
 
 _ANALYSIS_SYSTEM = (
@@ -130,6 +137,13 @@ _ROADMAP_SYSTEM = (
     "Never invent skills the candidate already has. Stay honest about what is missing."
 )
 
+_LINKEDIN_SYSTEM = (
+    "You are a LinkedIn profile optimization expert who has helped thousands of candidates attract recruiter attention. "
+    "You write compelling, authentic LinkedIn content grounded only in the candidate's actual experience. "
+    "You NEVER fabricate skills, projects, or achievements not present in the resume. "
+    "You know exactly which keywords recruiters and LinkedIn's algorithm surface — and you apply that knowledge concretely."
+)
+
 
 def _build_cover_letter_prompt(resume: str, job: str) -> str:
     return (
@@ -171,6 +185,22 @@ def _build_roadmap_prompt(resume: str, job: str) -> str:
         "give concrete advice on how to learn it given the candidate's existing background, "
         "and recommend 2-3 real, named resources (specific course names and providers, real certifications, or concrete project ideas). "
         "Order gaps by priority. Include 2-3 quick wins the candidate can do this week."
+    )
+
+
+def _build_linkedin_prompt(resume: str, job: str) -> str:
+    return (
+        "Optimize this candidate's LinkedIn profile to appeal to recruiters for the type of role described.\n\n"
+        "=== TARGET ROLE ===\n"
+        f"{job}\n\n"
+        "=== CANDIDATE RESUME ===\n"
+        f"{resume}\n\n"
+        "Produce:\n"
+        "1. An optimized LinkedIn headline (max 220 chars) — specific, keyword-rich, value-focused\n"
+        "2. A 3-4 paragraph LinkedIn About section in first-person — start with a hook, include concrete achievements, "
+        "end with what opportunities the candidate is open to\n"
+        "3. Top 8-10 skill keywords to add to their LinkedIn Skills section for this target role\n"
+        "4. 3-5 specific, actionable tips to strengthen this candidate's LinkedIn profile for recruiters in this field"
     )
 
 
@@ -316,6 +346,21 @@ def generate_skills_roadmap(resume: str, job: str) -> SkillsRoadmap:
         if isinstance(response.parsed, SkillsRoadmap):
             return response.parsed
         return _parse_from_text(response.text, SkillsRoadmap)  # type: ignore[arg-type]
+    except AnalyzerError:
+        raise
+    except Exception as exc:
+        raise _handle_api_error(exc)
+
+
+def generate_linkedin_profile(resume: str, job: str) -> LinkedInProfile:
+    """Generate LinkedIn headline, About section, and profile tips for the given resume + job."""
+    _validate(resume, job)
+    client = _client()
+    try:
+        response = _generate(client, _build_linkedin_prompt(resume, job), _LINKEDIN_SYSTEM, LinkedInProfile)
+        if isinstance(response.parsed, LinkedInProfile):
+            return response.parsed
+        return _parse_from_text(response.text, LinkedInProfile)  # type: ignore[arg-type]
     except AnalyzerError:
         raise
     except Exception as exc:

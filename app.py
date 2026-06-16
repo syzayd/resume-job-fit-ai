@@ -10,8 +10,9 @@ from pathlib import Path
 import streamlit as st
 
 from analyzer import (
-    Analysis, AnalyzerError, CoverLetter, InterviewPrep, SkillsRoadmap,
-    analyze, generate_cover_letter, generate_interview_prep, generate_skills_roadmap,
+    Analysis, AnalyzerError, CoverLetter, InterviewPrep, LinkedInProfile, SkillsRoadmap,
+    analyze, generate_cover_letter, generate_interview_prep, generate_linkedin_profile,
+    generate_skills_roadmap,
 )
 
 SAMPLE_DIR = Path(__file__).parent / "sample"
@@ -59,6 +60,7 @@ def analysis_as_text(
     cover: CoverLetter | None = None,
     prep: InterviewPrep | None = None,
     roadmap: SkillsRoadmap | None = None,
+    linkedin: LinkedInProfile | None = None,
 ) -> str:
     lines = [
         "RESUME JOB-FIT ANALYSIS",
@@ -97,6 +99,13 @@ def analysis_as_text(
             lines += [f"\n  [{gap.importance}] {gap.skill}", f"  {gap.how_to_learn}"]
             for r in gap.resources:
                 lines += [f"    - {r.name} ({r.provider}, {r.type})"]
+    if linkedin:
+        lines += ["", "=" * 40, "LINKEDIN PROFILE", "=" * 40, "",
+                  f"Headline: {linkedin.headline}", "",
+                  "ABOUT SECTION", linkedin.about, "",
+                  "SKILLS TO ADD", ", ".join(linkedin.skills_to_add), "",
+                  "PROFILE TIPS"]
+        lines += [f"  - {tip}" for tip in linkedin.profile_tips]
     return "\n".join(lines)
 
 
@@ -144,6 +153,9 @@ def render_cover_letter(cover: CoverLetter) -> None:
     st.write(cover.opening)
     st.write(cover.body)
     st.write(cover.closing)
+    st.divider()
+    with st.expander("Copy full letter"):
+        st.code(f"{cover.opening}\n\n{cover.body}\n\n{cover.closing}", language=None)
 
 
 def render_interview_prep(prep: InterviewPrep) -> None:
@@ -154,6 +166,8 @@ def render_interview_prep(prep: InterviewPrep) -> None:
             st.markdown(f"**Q{i}: {q.question}**")
             st.caption(f"Why asked: {q.why_asked}")
             st.markdown(f"Tip: {q.tip}")
+            with st.expander("Copy question + tip"):
+                st.code(f"Q: {q.question}\n\nTip: {q.tip}", language=None)
 
 
 def render_skills_roadmap(roadmap: SkillsRoadmap) -> None:
@@ -182,6 +196,28 @@ def render_skills_roadmap(roadmap: SkillsRoadmap) -> None:
                     st.markdown(f"- **{r.name}** — {r.provider} _{r.type}_")
 
 
+def render_linkedin_profile(profile: LinkedInProfile) -> None:
+    st.subheader("Headline")
+    st.markdown(f"> {_html.escape(profile.headline)}", unsafe_allow_html=False)
+    with st.expander("Copy headline"):
+        st.code(profile.headline, language=None)
+
+    st.divider()
+    st.subheader("About section")
+    st.write(profile.about)
+    with st.expander("Copy About section"):
+        st.code(profile.about, language=None)
+
+    st.divider()
+    st.subheader("Skills to add on LinkedIn")
+    chips(profile.skills_to_add, "#dbeafe", "#1e40af")
+
+    st.divider()
+    st.subheader("Profile tips")
+    for tip in profile.profile_tips:
+        st.markdown(f"- {tip}")
+
+
 # --- Session state init ------------------------------------------------------
 
 def _init() -> None:
@@ -193,6 +229,7 @@ def _init() -> None:
         "cover_letter": None,
         "interview_prep": None,
         "skills_roadmap": None,
+        "linkedin_profile": None,
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -227,6 +264,7 @@ with col_b:
             st.session_state.cover_letter = None
             st.session_state.interview_prep = None
             st.session_state.skills_roadmap = None
+            st.session_state.linkedin_profile = None
             st.rerun()
         except Exception:
             st.error("Could not read the PDF. Try a text-based PDF or paste your resume below.")
@@ -249,6 +287,7 @@ with btn_sample:
         st.session_state.cover_letter = None
         st.session_state.interview_prep = None
         st.session_state.skills_roadmap = None
+        st.session_state.linkedin_profile = None
         st.rerun()
 with btn_clear:
     if st.button("Clear", use_container_width=True):
@@ -259,6 +298,7 @@ with btn_clear:
         st.session_state.cover_letter = None
         st.session_state.interview_prep = None
         st.session_state.skills_roadmap = None
+        st.session_state.linkedin_profile = None
         st.rerun()
 
 if analyze_clicked:
@@ -268,6 +308,7 @@ if analyze_clicked:
             st.session_state.cover_letter = None
             st.session_state.interview_prep = None
             st.session_state.skills_roadmap = None
+            st.session_state.linkedin_profile = None
         except AnalyzerError as err:
             st.error(str(err))
 
@@ -276,8 +317,8 @@ if analyze_clicked:
 if st.session_state.result:
     result: Analysis = st.session_state.result
 
-    tab_analysis, tab_cover, tab_interview, tab_roadmap = st.tabs(
-        ["Analysis", "Cover Letter", "Interview Prep", "Skills Roadmap"]
+    tab_analysis, tab_cover, tab_interview, tab_roadmap, tab_linkedin = st.tabs(
+        ["Analysis", "Cover Letter", "Interview Prep", "Skills Roadmap", "LinkedIn Profile"]
     )
 
     with tab_analysis:
@@ -331,6 +372,26 @@ if st.session_state.result:
         if roadmap:
             render_skills_roadmap(roadmap)
 
+    with tab_linkedin:
+        li_profile: LinkedInProfile | None = st.session_state.linkedin_profile
+        if li_profile is None:
+            st.caption(
+                "Get an optimized LinkedIn headline, a ready-to-paste About section, "
+                "skills to add, and profile tips — all tailored to this role."
+            )
+            if st.button("Optimize LinkedIn profile", type="primary"):
+                with st.spinner("Optimizing your LinkedIn profile with Gemini..."):
+                    try:
+                        li_profile = generate_linkedin_profile(
+                            st.session_state.resume, st.session_state.job
+                        )
+                        st.session_state.linkedin_profile = li_profile
+                        st.rerun()
+                    except AnalyzerError as err:
+                        st.error(str(err))
+        if li_profile:
+            render_linkedin_profile(li_profile)
+
     st.divider()
     st.download_button(
         label="Download full analysis (.txt)",
@@ -339,6 +400,7 @@ if st.session_state.result:
             st.session_state.cover_letter,
             st.session_state.interview_prep,
             st.session_state.skills_roadmap,
+            st.session_state.linkedin_profile,
         ),
         file_name="resume_analysis.txt",
         mime="text/plain",
