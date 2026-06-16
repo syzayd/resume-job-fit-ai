@@ -54,9 +54,9 @@ Backed by:
 
 ## Remaining To-Do (Carry Forward)
 
-- [ ] **Deploy to Streamlit Cloud** — manual step: share.streamlit.io → New app → set GEMINI_API_KEY secret
-- [ ] **Update badge URL** in README once the live URL is known
-- [ ] **Update demo screenshot** — now a 3-page app, screenshot is very stale
+- [x] **Deploy to Streamlit Cloud** — live at https://resume-job-fit-ai.streamlit.app (2026-06-17)
+- [x] **Update badge URL** — README badge and all page footers point to live URL
+- [x] **Update demo screenshot** — 1820×354 composite of all 3 pages from live app (commit 68266a0)
 - [ ] **LinkedIn launch post** — `/linkedin-daily-post` skill to announce the live tool
 
 ---

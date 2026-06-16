@@ -142,7 +142,7 @@ resume-job-fit-ai/
 - [x] DOCX export (formatted Word document)
 - [x] Tests + GitHub Actions CI
 - [x] Job application tracker (SQLite — save, track status, export CSV)
-- [ ] Update demo screenshot (screenshot predates multi-page UI)
+- [x] Update demo screenshot (3-page composite from live app)
 
 ---
 
