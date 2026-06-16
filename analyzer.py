@@ -55,6 +55,36 @@ class CoverLetter(BaseModel):
     closing: str = Field(description="Closing paragraph: enthusiasm, call to action, professional sign-off.")
 
 
+class InterviewQuestion(BaseModel):
+    question: str = Field(description="A high-probability interview question for this specific role and candidate.")
+    why_asked: str = Field(description="The underlying concern or quality the interviewer is probing.")
+    tip: str = Field(description="One concrete, actionable tip for answering well, grounded in the candidate's actual experience.")
+
+
+class InterviewPrep(BaseModel):
+    questions: List[InterviewQuestion] = Field(description="5-7 tailored interview questions for this role and resume.")
+    opening_tip: str = Field(description="One key piece of advice for the overall interview approach given this candidate's background.")
+
+
+class Resource(BaseModel):
+    name: str = Field(description="Name of the specific course, certification, or project.")
+    provider: str = Field(description="Who offers it — e.g. Coursera, Google, GitHub, LinkedIn Learning.")
+    type: str = Field(description="One of: Course, Certification, Project, Book, Tutorial.")
+
+
+class SkillGap(BaseModel):
+    skill: str = Field(description="The missing skill or technology.")
+    importance: str = Field(description="High, Medium, or Low — how critical this skill is for the target role.")
+    how_to_learn: str = Field(description="Concrete 1-2 sentence advice on learning this skill, given the candidate's existing background.")
+    resources: List[Resource] = Field(description="2-3 specific resources to acquire this skill.")
+
+
+class SkillsRoadmap(BaseModel):
+    gaps: List[SkillGap] = Field(description="Key skill gaps in priority order — most important first.")
+    timeline: str = Field(description="Realistic estimate of how long to close the top gaps given this candidate's background.")
+    quick_wins: List[str] = Field(description="2-3 things the candidate can do this week to immediately strengthen their profile.")
+
+
 # --- Prompts -----------------------------------------------------------------
 
 _ANALYSIS_SYSTEM = (
@@ -86,6 +116,21 @@ def _build_analysis_prompt(resume: str, job: str) -> str:
     )
 
 
+_INTERVIEW_SYSTEM = (
+    "You are a senior hiring manager and interview coach who has conducted thousands of technical interviews. "
+    "You generate highly specific, realistic interview questions based on a candidate's actual resume and the job they are applying for. "
+    "Questions must reflect real gaps and strengths — never generic filler like 'tell me about yourself' unless it is genuinely the most important question. "
+    "Tips must be grounded in the candidate's real experience, not generic advice."
+)
+
+_ROADMAP_SYSTEM = (
+    "You are a technical career coach who builds specific, actionable learning roadmaps. "
+    "You recommend real, named resources (actual courses, certifications, projects) — never vague advice like 'learn Python'. "
+    "Prioritize the gaps that will most improve the candidate's chances for this specific role. "
+    "Never invent skills the candidate already has. Stay honest about what is missing."
+)
+
+
 def _build_cover_letter_prompt(resume: str, job: str) -> str:
     return (
         "Write a concise, tailored cover letter for this candidate applying to this specific job.\n\n"
@@ -98,6 +143,34 @@ def _build_cover_letter_prompt(resume: str, job: str) -> str:
         "- Only reference projects and skills that actually appear in the resume.\n"
         "- Be specific and concrete — reference the job title and at least two requirements.\n"
         "- No generic filler. No invented metrics. Placeholders like [Company Name] are fine."
+    )
+
+
+def _build_interview_prompt(resume: str, job: str) -> str:
+    return (
+        "Generate tailored interview preparation for this candidate applying to this specific job.\n\n"
+        "=== JOB DESCRIPTION ===\n"
+        f"{job}\n\n"
+        "=== CANDIDATE RESUME ===\n"
+        f"{resume}\n\n"
+        "Produce 5-7 high-probability interview questions for this exact role and candidate. "
+        "For each question explain why it will be asked and give one specific, actionable tip based on the candidate's real background. "
+        "Include a mix of: technical/skills questions targeting gaps, behavioral questions targeting the role's key challenges, "
+        "and questions about the candidate's strongest relevant projects."
+    )
+
+
+def _build_roadmap_prompt(resume: str, job: str) -> str:
+    return (
+        "Build a concrete skills gap roadmap for this candidate targeting this job.\n\n"
+        "=== JOB DESCRIPTION ===\n"
+        f"{job}\n\n"
+        "=== CANDIDATE RESUME ===\n"
+        f"{resume}\n\n"
+        "Identify the most important missing skills. For each gap, rate its importance (High/Medium/Low) for this specific role, "
+        "give concrete advice on how to learn it given the candidate's existing background, "
+        "and recommend 2-3 real, named resources (specific course names and providers, real certifications, or concrete project ideas). "
+        "Order gaps by priority. Include 2-3 quick wins the candidate can do this week."
     )
 
 
@@ -205,11 +278,7 @@ def analyze(resume: str, job: str) -> Analysis:
 
 
 def generate_cover_letter(resume: str, job: str) -> CoverLetter:
-    """Generate a tailored cover letter for the given resume + job.
-
-    Raises AnalyzerError with a friendly message on any expected failure.
-    Automatically retries up to 3 times on transient server errors.
-    """
+    """Generate a tailored cover letter for the given resume + job."""
     _validate(resume, job)
     client = _client()
     try:
@@ -217,6 +286,36 @@ def generate_cover_letter(resume: str, job: str) -> CoverLetter:
         if isinstance(response.parsed, CoverLetter):
             return response.parsed
         return _parse_from_text(response.text, CoverLetter)  # type: ignore[arg-type]
+    except AnalyzerError:
+        raise
+    except Exception as exc:
+        raise _handle_api_error(exc)
+
+
+def generate_interview_prep(resume: str, job: str) -> InterviewPrep:
+    """Generate tailored interview questions and tips for the given resume + job."""
+    _validate(resume, job)
+    client = _client()
+    try:
+        response = _generate(client, _build_interview_prompt(resume, job), _INTERVIEW_SYSTEM, InterviewPrep)
+        if isinstance(response.parsed, InterviewPrep):
+            return response.parsed
+        return _parse_from_text(response.text, InterviewPrep)  # type: ignore[arg-type]
+    except AnalyzerError:
+        raise
+    except Exception as exc:
+        raise _handle_api_error(exc)
+
+
+def generate_skills_roadmap(resume: str, job: str) -> SkillsRoadmap:
+    """Generate a prioritized skills gap roadmap for the given resume + job."""
+    _validate(resume, job)
+    client = _client()
+    try:
+        response = _generate(client, _build_roadmap_prompt(resume, job), _ROADMAP_SYSTEM, SkillsRoadmap)
+        if isinstance(response.parsed, SkillsRoadmap):
+            return response.parsed
+        return _parse_from_text(response.text, SkillsRoadmap)  # type: ignore[arg-type]
     except AnalyzerError:
         raise
     except Exception as exc:
