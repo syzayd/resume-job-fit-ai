@@ -4,11 +4,15 @@ Run: streamlit run app.py
 """
 
 import html as _html
+import io
 from pathlib import Path
 
 import streamlit as st
 
-from analyzer import Analysis, AnalyzerError, CoverLetter, analyze, generate_cover_letter
+from analyzer import (
+    Analysis, AnalyzerError, CoverLetter, InterviewPrep, SkillsRoadmap,
+    analyze, generate_cover_letter, generate_interview_prep, generate_skills_roadmap,
+)
 
 SAMPLE_DIR = Path(__file__).parent / "sample"
 
@@ -22,6 +26,12 @@ def load_sample(name: str) -> str:
         return (SAMPLE_DIR / name).read_text(encoding="utf-8")
     except OSError:
         return ""
+
+
+def extract_pdf_text(uploaded_file) -> str:
+    import pdfplumber
+    with pdfplumber.open(io.BytesIO(uploaded_file.read())) as pdf:
+        return "\n".join(page.extract_text() or "" for page in pdf.pages).strip()
 
 
 def score_color(score: int) -> str:
@@ -44,8 +54,12 @@ def chips(items: list[str], bg: str, fg: str) -> None:
     st.markdown(html, unsafe_allow_html=True)
 
 
-def analysis_as_text(result: Analysis, cover: CoverLetter | None = None) -> str:
-    """Serialize results to a clean plain-text string for download."""
+def analysis_as_text(
+    result: Analysis,
+    cover: CoverLetter | None = None,
+    prep: InterviewPrep | None = None,
+    roadmap: SkillsRoadmap | None = None,
+) -> str:
     lines = [
         "RESUME JOB-FIT ANALYSIS",
         "=" * 40,
@@ -62,26 +76,27 @@ def analysis_as_text(result: Analysis, cover: CoverLetter | None = None) -> str:
     ]
     for rw in result.bullet_rewrites:
         lines += [f"  Before: {rw.original}", f"  After:  {rw.improved}", ""]
-    lines += [
-        "HOW TO IMPROVE",
-        result.summary,
-        "",
-        "ATS TIPS",
-    ]
+    lines += ["HOW TO IMPROVE", result.summary, "", "ATS TIPS"]
     lines += [f"  - {tip}" for tip in result.ats_tips]
     if cover:
-        lines += [
-            "",
-            "=" * 40,
-            "COVER LETTER",
-            "=" * 40,
-            "",
-            cover.opening,
-            "",
-            cover.body,
-            "",
-            cover.closing,
-        ]
+        lines += ["", "=" * 40, "COVER LETTER", "=" * 40, "",
+                  cover.opening, "", cover.body, "", cover.closing]
+    if prep:
+        lines += ["", "=" * 40, "INTERVIEW PREP", "=" * 40, ""]
+        lines += [f"Key advice: {prep.opening_tip}", ""]
+        for i, q in enumerate(prep.questions, 1):
+            lines += [f"Q{i}: {q.question}", f"    Why asked: {q.why_asked}",
+                      f"    Tip: {q.tip}", ""]
+    if roadmap:
+        lines += ["", "=" * 40, "SKILLS ROADMAP", "=" * 40, "",
+                  f"Timeline: {roadmap.timeline}", "",
+                  "Quick wins this week:"]
+        lines += [f"  - {w}" for w in roadmap.quick_wins]
+        lines += ["", "Skill gaps (priority order):"]
+        for gap in roadmap.gaps:
+            lines += [f"\n  [{gap.importance}] {gap.skill}", f"  {gap.how_to_learn}"]
+            for r in gap.resources:
+                lines += [f"    - {r.name} ({r.provider}, {r.type})"]
     return "\n".join(lines)
 
 
@@ -131,14 +146,53 @@ def render_cover_letter(cover: CoverLetter) -> None:
     st.write(cover.closing)
 
 
+def render_interview_prep(prep: InterviewPrep) -> None:
+    st.info(f"**Key advice:** {prep.opening_tip}")
+    st.divider()
+    for i, q in enumerate(prep.questions, 1):
+        with st.container(border=True):
+            st.markdown(f"**Q{i}: {q.question}**")
+            st.caption(f"Why asked: {q.why_asked}")
+            st.markdown(f"Tip: {q.tip}")
+
+
+def render_skills_roadmap(roadmap: SkillsRoadmap) -> None:
+    st.markdown(f"**Estimated timeline to close key gaps:** {roadmap.timeline}")
+    if roadmap.quick_wins:
+        st.subheader("Quick wins this week")
+        for win in roadmap.quick_wins:
+            st.markdown(f"- {win}")
+    st.divider()
+    st.subheader("Skill gaps — priority order")
+    importance_color = {"High": "#fee2e2", "Medium": "#fef9c3", "Low": "#f0fdf4"}
+    importance_fg = {"High": "#991b1b", "Medium": "#854d0e", "Low": "#166534"}
+    for gap in roadmap.gaps:
+        bg = importance_color.get(gap.importance, "#f3f4f6")
+        fg = importance_fg.get(gap.importance, "#374151")
+        with st.container(border=True):
+            st.markdown(
+                f"<span style='background:{bg};color:{fg};padding:2px 8px;"
+                f"border-radius:10px;font-size:0.8rem;font-weight:600;'>{_html.escape(gap.importance)}</span>"
+                f" &nbsp; **{_html.escape(gap.skill)}**",
+                unsafe_allow_html=True,
+            )
+            st.write(gap.how_to_learn)
+            if gap.resources:
+                for r in gap.resources:
+                    st.markdown(f"- **{r.name}** — {r.provider} _{r.type}_")
+
+
 # --- Session state init ------------------------------------------------------
 
 def _init() -> None:
     defaults = {
         "resume": "",
         "job": "",
+        "pdf_name": None,
         "result": None,
         "cover_letter": None,
+        "interview_prep": None,
+        "skills_roadmap": None,
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -150,8 +204,9 @@ _init()
 
 st.title("Resume Job-Fit AI")
 st.caption(
-    "Paste a job description and your resume — get a fit score, keyword gaps, "
-    "tailored rewrites, and a cover letter. Powered by Google Gemini (free tier)."
+    "Paste or upload your resume + a job description — get a fit score, keyword gaps, "
+    "tailored rewrites, cover letter, interview prep, and a skills roadmap. "
+    "Powered by Google Gemini (free tier)."
 )
 
 col_a, col_b = st.columns(2)
@@ -161,9 +216,25 @@ with col_a:
         height=300, placeholder="Paste the job posting here...",
     )
 with col_b:
+    uploaded_pdf = st.file_uploader(
+        "Upload resume PDF (or paste below)", type="pdf", label_visibility="visible",
+    )
+    if uploaded_pdf is not None and uploaded_pdf.name != st.session_state.pdf_name:
+        try:
+            st.session_state.resume = extract_pdf_text(uploaded_pdf)
+            st.session_state.pdf_name = uploaded_pdf.name
+            st.session_state.result = None
+            st.session_state.cover_letter = None
+            st.session_state.interview_prep = None
+            st.session_state.skills_roadmap = None
+            st.rerun()
+        except Exception:
+            st.error("Could not read the PDF. Try a text-based PDF or paste your resume below.")
+
     st.session_state.resume = st.text_area(
         "Your resume", value=st.session_state.resume,
-        height=300, placeholder="Paste your resume text here...",
+        height=220, placeholder="Paste your resume text here...",
+        label_visibility="collapsed",
     )
 
 btn_analyze, btn_sample, btn_clear, _ = st.columns([1, 1, 1, 3])
@@ -173,22 +244,30 @@ with btn_sample:
     if st.button("Load sample", use_container_width=True):
         st.session_state.resume = load_sample("sample_resume.txt")
         st.session_state.job = load_sample("sample_job.txt")
+        st.session_state.pdf_name = None
         st.session_state.result = None
         st.session_state.cover_letter = None
+        st.session_state.interview_prep = None
+        st.session_state.skills_roadmap = None
         st.rerun()
 with btn_clear:
     if st.button("Clear", use_container_width=True):
         st.session_state.resume = ""
         st.session_state.job = ""
+        st.session_state.pdf_name = None
         st.session_state.result = None
         st.session_state.cover_letter = None
+        st.session_state.interview_prep = None
+        st.session_state.skills_roadmap = None
         st.rerun()
 
 if analyze_clicked:
     with st.spinner("Analyzing with Gemini..."):
         try:
             st.session_state.result = analyze(st.session_state.resume, st.session_state.job)
-            st.session_state.cover_letter = None  # clear stale letter on re-analysis
+            st.session_state.cover_letter = None
+            st.session_state.interview_prep = None
+            st.session_state.skills_roadmap = None
         except AnalyzerError as err:
             st.error(str(err))
 
@@ -197,7 +276,9 @@ if analyze_clicked:
 if st.session_state.result:
     result: Analysis = st.session_state.result
 
-    tab_analysis, tab_cover = st.tabs(["Analysis", "Cover Letter"])
+    tab_analysis, tab_cover, tab_interview, tab_roadmap = st.tabs(
+        ["Analysis", "Cover Letter", "Interview Prep", "Skills Roadmap"]
+    )
 
     with tab_analysis:
         render_analysis(result)
@@ -218,10 +299,47 @@ if st.session_state.result:
         if cover:
             render_cover_letter(cover)
 
+    with tab_interview:
+        prep: InterviewPrep | None = st.session_state.interview_prep
+        if prep is None:
+            if st.button("Generate interview prep", type="primary"):
+                with st.spinner("Generating interview questions with Gemini..."):
+                    try:
+                        prep = generate_interview_prep(
+                            st.session_state.resume, st.session_state.job
+                        )
+                        st.session_state.interview_prep = prep
+                        st.rerun()
+                    except AnalyzerError as err:
+                        st.error(str(err))
+        if prep:
+            render_interview_prep(prep)
+
+    with tab_roadmap:
+        roadmap: SkillsRoadmap | None = st.session_state.skills_roadmap
+        if roadmap is None:
+            if st.button("Generate skills roadmap", type="primary"):
+                with st.spinner("Building your skills roadmap with Gemini..."):
+                    try:
+                        roadmap = generate_skills_roadmap(
+                            st.session_state.resume, st.session_state.job
+                        )
+                        st.session_state.skills_roadmap = roadmap
+                        st.rerun()
+                    except AnalyzerError as err:
+                        st.error(str(err))
+        if roadmap:
+            render_skills_roadmap(roadmap)
+
     st.divider()
     st.download_button(
         label="Download full analysis (.txt)",
-        data=analysis_as_text(result, st.session_state.cover_letter),
+        data=analysis_as_text(
+            result,
+            st.session_state.cover_letter,
+            st.session_state.interview_prep,
+            st.session_state.skills_roadmap,
+        ),
         file_name="resume_analysis.txt",
         mime="text/plain",
     )
