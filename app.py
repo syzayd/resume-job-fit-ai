@@ -116,6 +116,113 @@ def analysis_as_text(
     return "\n".join(lines)
 
 
+def export_docx(
+    result: Analysis,
+    cover: CoverLetter | None = None,
+    prep: InterviewPrep | None = None,
+    roadmap: SkillsRoadmap | None = None,
+    linkedin: LinkedInProfile | None = None,
+) -> bytes:
+    """Build a formatted Word document and return it as bytes."""
+    from docx import Document
+    from docx.shared import Pt, RGBColor
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+
+    doc = Document()
+
+    # Title
+    title = doc.add_heading("Resume Job-Fit Analysis", 0)
+    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    # Score
+    score_para = doc.add_paragraph()
+    score_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = score_para.add_run(f"Fit Score: {result.score}/100")
+    run.bold = True
+    run.font.size = Pt(18)
+    doc.add_paragraph(result.verdict)
+
+    # Keywords
+    doc.add_heading("Matched Keywords", 2)
+    doc.add_paragraph(", ".join(result.matched_keywords) or "None")
+
+    doc.add_heading("Missing Keywords", 2)
+    doc.add_paragraph(", ".join(result.missing_keywords) or "None")
+
+    # Bullet rewrites
+    doc.add_heading("Tailored Bullet Rewrites", 2)
+    for rw in result.bullet_rewrites:
+        p = doc.add_paragraph()
+        p.add_run("Before: ").bold = True
+        p.add_run(rw.original)
+        p2 = doc.add_paragraph()
+        p2.add_run("After:  ").bold = True
+        p2.add_run(rw.improved)
+        doc.add_paragraph()
+
+    # Summary + ATS
+    doc.add_heading("How to Improve This Application", 2)
+    doc.add_paragraph(result.summary)
+    doc.add_heading("ATS Tips", 3)
+    for tip in result.ats_tips:
+        doc.add_paragraph(tip, style="List Bullet")
+
+    # Cover letter
+    if cover:
+        doc.add_page_break()
+        doc.add_heading("Cover Letter", 1)
+        doc.add_paragraph(cover.opening)
+        doc.add_paragraph(cover.body)
+        doc.add_paragraph(cover.closing)
+
+    # Interview prep
+    if prep:
+        doc.add_page_break()
+        doc.add_heading("Interview Prep", 1)
+        doc.add_paragraph(prep.opening_tip)
+        for i, q in enumerate(prep.questions, 1):
+            doc.add_heading(f"Q{i}: {q.question}", 3)
+            p = doc.add_paragraph()
+            p.add_run("Why asked: ").bold = True
+            p.add_run(q.why_asked)
+            p2 = doc.add_paragraph()
+            p2.add_run("Tip: ").bold = True
+            p2.add_run(q.tip)
+
+    # Skills roadmap
+    if roadmap:
+        doc.add_page_break()
+        doc.add_heading("Skills Gap Roadmap", 1)
+        doc.add_paragraph(f"Estimated timeline: {roadmap.timeline}")
+        doc.add_heading("Quick Wins This Week", 2)
+        for win in roadmap.quick_wins:
+            doc.add_paragraph(win, style="List Bullet")
+        doc.add_heading("Skill Gaps — Priority Order", 2)
+        for gap in roadmap.gaps:
+            doc.add_heading(f"[{gap.importance}] {gap.skill}", 3)
+            doc.add_paragraph(gap.how_to_learn)
+            for r in gap.resources:
+                doc.add_paragraph(f"{r.name} — {r.provider} ({r.type})", style="List Bullet")
+
+    # LinkedIn
+    if linkedin:
+        doc.add_page_break()
+        doc.add_heading("LinkedIn Profile Optimizer", 1)
+        doc.add_heading("Headline", 2)
+        doc.add_paragraph(linkedin.headline)
+        doc.add_heading("About Section", 2)
+        doc.add_paragraph(linkedin.about)
+        doc.add_heading("Skills to Add", 2)
+        doc.add_paragraph(", ".join(linkedin.skills_to_add))
+        doc.add_heading("Profile Tips", 2)
+        for tip in linkedin.profile_tips:
+            doc.add_paragraph(tip, style="List Bullet")
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
 # --- Result panels -----------------------------------------------------------
 
 def render_analysis(result: Analysis) -> None:
@@ -426,18 +533,35 @@ if st.session_state.result:
             render_linkedin_profile(li_profile)
 
     st.divider()
-    st.download_button(
-        label="Download full analysis (.txt)",
-        data=analysis_as_text(
-            result,
-            st.session_state.cover_letter,
-            st.session_state.interview_prep,
-            st.session_state.skills_roadmap,
-            st.session_state.linkedin_profile,
-        ),
-        file_name="resume_analysis.txt",
-        mime="text/plain",
-    )
+    _dl_txt, _dl_docx, _ = st.columns([1, 1, 4])
+    with _dl_txt:
+        st.download_button(
+            label="Download (.txt)",
+            data=analysis_as_text(
+                result,
+                st.session_state.cover_letter,
+                st.session_state.interview_prep,
+                st.session_state.skills_roadmap,
+                st.session_state.linkedin_profile,
+            ),
+            file_name="resume_analysis.txt",
+            mime="text/plain",
+            use_container_width=True,
+        )
+    with _dl_docx:
+        st.download_button(
+            label="Download (.docx)",
+            data=export_docx(
+                result,
+                st.session_state.cover_letter,
+                st.session_state.interview_prep,
+                st.session_state.skills_roadmap,
+                st.session_state.linkedin_profile,
+            ),
+            file_name="resume_analysis.docx",
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            use_container_width=True,
+        )
 
 st.divider()
 st.caption(

@@ -92,6 +92,22 @@ class LinkedInProfile(BaseModel):
     profile_tips: List[str] = Field(description="3-5 specific, actionable tips to improve this candidate's LinkedIn profile for the target role.")
 
 
+class JobMatch(BaseModel):
+    job_number: int = Field(description="Which job this is (1, 2, or 3).")
+    job_title: str = Field(description="The job title extracted from the job description.")
+    score: int = Field(description="Fit score 0-100 for this specific job.")
+    top_strengths: List[str] = Field(description="2-3 resume strengths that directly match this job's requirements.")
+    top_gaps: List[str] = Field(description="2-3 most important skills missing for this job.")
+    verdict: str = Field(description="One sentence honest summary of fit for this role.")
+
+
+class JobComparison(BaseModel):
+    matches: List[JobMatch] = Field(description="One entry per job, ranked best-fit first.")
+    recommended_job: int = Field(description="Job number (1, 2, or 3) this resume is the best fit for overall.")
+    recommendation_reason: str = Field(description="2-3 sentences explaining why this job is the best match given the resume's actual strengths.")
+    apply_order: List[int] = Field(description="Suggested order to apply (job numbers, best fit first).")
+
+
 # --- Prompts -----------------------------------------------------------------
 
 _ANALYSIS_SYSTEM = (
@@ -142,6 +158,14 @@ _LINKEDIN_SYSTEM = (
     "You write compelling, authentic LinkedIn content grounded only in the candidate's actual experience. "
     "You NEVER fabricate skills, projects, or achievements not present in the resume. "
     "You know exactly which keywords recruiters and LinkedIn's algorithm surface — and you apply that knowledge concretely."
+)
+
+_COMPARISON_SYSTEM = (
+    "You are a senior technical recruiter who has reviewed thousands of applications. "
+    "You compare a single resume against multiple job descriptions and give a clear, honest ranking. "
+    "You extract the actual job title from each job description. "
+    "Scores are relative and calibrated — if a resume fits all jobs well, scores should still differentiate them. "
+    "Never invent experience the candidate doesn't have. Be direct about gaps."
 )
 
 
@@ -201,6 +225,26 @@ def _build_linkedin_prompt(resume: str, job: str) -> str:
         "end with what opportunities the candidate is open to\n"
         "3. Top 8-10 skill keywords to add to their LinkedIn Skills section for this target role\n"
         "4. 3-5 specific, actionable tips to strengthen this candidate's LinkedIn profile for recruiters in this field"
+    )
+
+
+def _build_comparison_prompt(resume: str, jobs: List[str]) -> str:
+    jobs_block = "\n\n".join(
+        f"=== JOB {i+1} ===\n{job}" for i, job in enumerate(jobs)
+    )
+    return (
+        f"Compare this resume against {len(jobs)} job descriptions and rank the fit.\n\n"
+        "=== RESUME ===\n"
+        f"{resume}\n\n"
+        f"{jobs_block}\n\n"
+        "For each job:\n"
+        "- Extract the actual job title from the description.\n"
+        "- Score fit 0-100 (be calibrated — scores should differentiate even if all fit well).\n"
+        "- List 2-3 resume strengths that directly match that job's requirements.\n"
+        "- List 2-3 most important gaps for that job.\n"
+        "- Write one honest verdict sentence.\n\n"
+        "Then rank them best-fit first, name the single best match, explain why in 2-3 sentences, "
+        "and give a suggested apply order (job numbers)."
     )
 
 
@@ -361,6 +405,43 @@ def generate_linkedin_profile(resume: str, job: str) -> LinkedInProfile:
         if isinstance(response.parsed, LinkedInProfile):
             return response.parsed
         return _parse_from_text(response.text, LinkedInProfile)  # type: ignore[arg-type]
+    except AnalyzerError:
+        raise
+    except Exception as exc:
+        raise _handle_api_error(exc)
+
+
+def compare_jobs(resume: str, jobs: List[str]) -> JobComparison:
+    """Compare one resume against 2-3 job descriptions and return a ranked JobComparison.
+
+    `jobs` must contain 2 or 3 non-empty job description strings.
+    """
+    if not resume.strip():
+        raise AnalyzerError("Please paste your resume before comparing jobs.")
+    jobs = [j for j in jobs if j.strip()]
+    if len(jobs) < 2:
+        raise AnalyzerError("Paste at least 2 job descriptions to compare.")
+    if len(jobs) > 3:
+        jobs = jobs[:3]
+    if len(resume) > MAX_INPUT_CHARS:
+        raise AnalyzerError(
+            f"Resume is too long (limit {MAX_INPUT_CHARS:,} characters). "
+            "Trim to the most relevant sections and try again."
+        )
+    for i, j in enumerate(jobs, 1):
+        if len(j) > MAX_INPUT_CHARS:
+            raise AnalyzerError(
+                f"Job {i} is too long (limit {MAX_INPUT_CHARS:,} characters). "
+                "Trim and try again."
+            )
+    client = _client()
+    try:
+        response = _generate(
+            client, _build_comparison_prompt(resume, jobs), _COMPARISON_SYSTEM, JobComparison
+        )
+        if isinstance(response.parsed, JobComparison):
+            return response.parsed
+        return _parse_from_text(response.text, JobComparison)  # type: ignore[arg-type]
     except AnalyzerError:
         raise
     except Exception as exc:
