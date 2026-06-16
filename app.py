@@ -5,9 +5,16 @@ Run: streamlit run app.py
 
 import html as _html
 import io
+import os
 from pathlib import Path
 
 import streamlit as st
+
+# Streamlit Community Cloud stores secrets in st.secrets, not env vars.
+# Inject them into os.environ so analyzer.py's os.environ.get() calls work on Cloud.
+for _secret_key in ("GEMINI_API_KEY", "GOOGLE_API_KEY"):
+    if _secret_key in st.secrets and not os.environ.get(_secret_key):
+        os.environ[_secret_key] = st.secrets[_secret_key]
 
 from analyzer import (
     Analysis, AnalyzerError, CoverLetter, InterviewPrep, LinkedInProfile, SkillsRoadmap,
@@ -316,6 +323,32 @@ if analyze_clicked:
 
 if st.session_state.result:
     result: Analysis = st.session_state.result
+
+    # "Generate all sections" — runs all 4 AI generators in one click
+    _todo = [k for k in ("cover_letter", "interview_prep", "skills_roadmap", "linkedin_profile")
+             if st.session_state[k] is None]
+    if _todo:
+        _gen_all_col, _ = st.columns([2, 5])
+        with _gen_all_col:
+            if st.button("Generate all sections ✨", type="primary", use_container_width=True):
+                _generators = [
+                    (generate_cover_letter,    "cover_letter",    "Cover Letter"),
+                    (generate_interview_prep,  "interview_prep",  "Interview Prep"),
+                    (generate_skills_roadmap,  "skills_roadmap",  "Skills Roadmap"),
+                    (generate_linkedin_profile,"linkedin_profile","LinkedIn Profile"),
+                ]
+                _progress = st.progress(0, text="Starting…")
+                for _i, (_fn, _key, _label) in enumerate(_generators):
+                    if st.session_state[_key] is None:
+                        _progress.progress((_i) / len(_generators), text=f"Generating {_label}…")
+                        try:
+                            st.session_state[_key] = _fn(
+                                st.session_state.resume, st.session_state.job
+                            )
+                        except AnalyzerError as _err:
+                            st.warning(f"{_label}: {_err}")
+                _progress.progress(1.0, text="All sections ready!")
+                st.rerun()
 
     tab_analysis, tab_cover, tab_interview, tab_roadmap, tab_linkedin = st.tabs(
         ["Analysis", "Cover Letter", "Interview Prep", "Skills Roadmap", "LinkedIn Profile"]

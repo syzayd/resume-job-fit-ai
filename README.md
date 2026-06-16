@@ -1,8 +1,10 @@
 # Resume Job-Fit AI
 
-Paste a **job description** and your **resume** (or upload a PDF) → get an instant **fit score (0–100)**, the **keywords you're missing**, **AI-rewritten resume bullets**, a **tailored cover letter**, **interview prep**, and a **skills gap roadmap**.
+Paste a **job description** and your **resume** (or upload a PDF) → get an instant **fit score (0–100)**, the **keywords you're missing**, **AI-rewritten resume bullets**, a **tailored cover letter**, **interview prep**, a **skills gap roadmap**, and a **LinkedIn profile optimizer** — all in one click.
 
 Built to answer a real question every applicant has: *"How well does my resume actually match this job — and what do I do about it?"*
+
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://resume-job-fit-ai.streamlit.app)
 
 ![Resume Job-Fit AI screenshot](docs/screenshot.png)
 
@@ -16,10 +18,11 @@ Built to answer a real question every applicant has: *"How well does my resume a
 | **Matched / missing keywords** | Color-coded chips showing exactly which skills to surface |
 | **Tailored bullet rewrites** | Your real bullets, rewritten for impact and keyword alignment — never fabricated |
 | **ATS tips** | Concrete phrases to add so applicant-tracking systems don't filter you out |
-| **Cover letter** | Three-paragraph, role-specific draft grounded in your actual resume |
+| **Cover letter** | Three-paragraph, role-specific draft grounded in your actual resume — copyable in one click |
 | **Interview prep** | 5–7 tailored questions with why-asked context and tips from your real background |
 | **Skills gap roadmap** | Prioritized gaps (High / Medium / Low), named courses + providers, quick wins this week |
 | **LinkedIn optimizer** | AI-generated headline, About section, skills to add, and profile tips — all role-specific and copyable |
+| **Generate all sections ✨** | One button to generate every AI section at once — no tab-by-tab clicking |
 | **PDF upload** | Upload your resume PDF — text is extracted automatically |
 | **Download full analysis** | Export everything (score, cover letter, interview prep, roadmap, LinkedIn) as a `.txt` file |
 
@@ -30,7 +33,7 @@ Built to answer a real question every applicant has: *"How well does my resume a
 - **Google Gemini** (free tier, no credit card needed) via the official `google-genai` Python SDK
 - **Model:** `gemini-2.5-flash-lite` — the most reliable free-tier model (overridable via `GEMINI_MODEL` env var)
 - **Structured outputs** — Pydantic schemas passed as Gemini's `response_schema`; the model returns clean, validated JSON every time
-- **Streamlit** front end — no HTML/JS needed
+- **Streamlit** front end — deployed free on [Streamlit Community Cloud](https://streamlit.io/cloud)
 - **pdfplumber** for PDF text extraction
 - **XSS prevention** — all Gemini-generated strings are passed through `html.escape()` before rendering with `unsafe_allow_html`
 - **Auto-retry** — exponential backoff on transient 429 rate-limits and 5xx server errors (up to 3 attempts)
@@ -54,7 +57,20 @@ cp .env.example .env             # paste your FREE key from aistudio.google.com/
 streamlit run app.py
 ```
 
-Then click **Load sample → Analyze fit** to see it work instantly.
+Then click **Load sample → Analyze fit → Generate all sections ✨** to see everything work instantly.
+
+---
+
+## Deploy to Streamlit Community Cloud (free)
+
+1. Fork this repo on GitHub.
+2. Go to [share.streamlit.io](https://share.streamlit.io) → **New app** → select your fork → `app.py`.
+3. Under **Advanced settings → Secrets**, paste:
+   ```toml
+   GEMINI_API_KEY = "your-key-here"
+   ```
+   Get a free key (no credit card) at [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
+4. Click **Deploy**. Live in ~60 seconds.
 
 ---
 
@@ -62,18 +78,22 @@ Then click **Load sample → Analyze fit** to see it work instantly.
 
 ```
 resume-job-fit-ai/
-├── app.py              # Streamlit UI — 5 tabs, PDF upload, session state
-├── analyzer.py         # All Gemini logic — schemas, prompts, retry, error handling
+├── app.py                        # Streamlit UI — 5 tabs, Generate All, PDF upload
+├── analyzer.py                   # All Gemini logic — schemas, prompts, retry, error handling
 ├── requirements.txt
-├── .env.example        # GEMINI_API_KEY=your-key-here  (never commit .env)
+├── .env.example                  # GEMINI_API_KEY=your-key-here  (never commit .env)
 ├── .gitignore
 ├── README.md
+├── .streamlit/
+│   ├── config.toml               # Theme + server settings
+│   └── secrets.toml.example      # Format for Streamlit Cloud secrets
 ├── docs/
 │   └── screenshot.png
+├── logs/                         # Build logs per path
 ├── sample/
 │   ├── sample_resume.txt
 │   └── sample_job.txt
-└── handoffs/           # session handoff documents
+└── handoffs/                     # Session handoff documents
 ```
 
 ---
@@ -88,24 +108,11 @@ resume-job-fit-ai/
 
 **Free-tier quirks are real constraints.** `gemini-2.0-flash` has 0 free-tier quota right now. `gemini-2.5-flash` 503s under load. `gemini-2.5-flash-lite` is the actual reliable free-tier choice — you only know this by hitting failures in production.
 
+**Streamlit secrets ≠ env vars on Cloud.** Streamlit Community Cloud injects secrets via `st.secrets`, not `os.environ`. A one-time shim at app startup (`os.environ[k] = st.secrets[k]`) bridges the gap cleanly without coupling the core logic to Streamlit.
+
 **Streamlit session state needs intentional keying.** Streamlit reruns the entire script on every widget interaction. Without tracking `pdf_name` in `st.session_state`, the app re-extracted the PDF on every keypress. One extra state key eliminated the problem entirely.
 
 **`-> NoReturn` is not optional for always-raise functions.** If a function always raises, annotating it `-> None` breaks type checker flow analysis — callers after `_handle_api_error(exc)` appear reachable. `-> NoReturn` + `raise _handle_api_error(exc)` at the call site is the correct pattern.
-
----
-
-## Commit history
-
-```
-9434fb4 feat: PDF upload, interview prep tab, and skills gap roadmap
-a8ea8e7 Fix formatting issues in README.md
-e21d603 fix: XSS escaping, retry 429s, and NoReturn annotation from code review
-9de3492 feat: cover letter generator tab + download full analysis as .txt
-0011c6b feat: auto-retry Gemini 503s with exponential backoff (up to 3 attempts)
-7e6ce54 docs: add live demo screenshot
-e89bc6b fix: default to gemini-2.5-flash-lite (reliable free tier)
-ba46291 refactor: switch from Claude to free Google Gemini
-```
 
 ---
 
@@ -117,10 +124,13 @@ ba46291 refactor: switch from Claude to free Google Gemini
 - [x] Skills gap roadmap
 - [x] LinkedIn profile optimizer (headline + About + skills)
 - [x] Copy-to-clipboard for cover letter and interview answers
-- [ ] Update demo screenshot (screenshot predates the 5-tab UI)
-- [ ] Save & compare past analyses
-- [ ] Side-by-side multi-job comparison
-- [ ] Live hosted demo (Streamlit Community Cloud)
+- [x] "Generate all sections" one-click button
+- [x] Streamlit Community Cloud deploy support
+- [ ] Update demo screenshot (screenshot predates 5-tab UI)
+- [ ] Multi-job comparison (rank 2–3 jobs against your resume)
+- [ ] DOCX export (Word document)
+- [ ] Tests + GitHub Actions CI
+- [ ] Job application tracker (SQLite — save & compare past analyses)
 
 ---
 
