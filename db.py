@@ -110,6 +110,16 @@ def get_stats() -> dict:
     }
 
 
+def get_score_history() -> list[dict]:
+    """Return saved_on/score/job_title ordered oldest-first for the trend chart."""
+    init_db()
+    with _conn() as con:
+        rows = con.execute(
+            "SELECT saved_on, score, job_title FROM applications ORDER BY id ASC"
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
 def export_csv() -> str:
     """Return all applications as a CSV string."""
     apps = get_all_applications()

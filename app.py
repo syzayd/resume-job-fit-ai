@@ -384,6 +384,7 @@ def _init() -> None:
         "pdf_name": None,
         "result": None,
         "cover_letter": None,
+        "cover_letter_tone": "Professional",
         "interview_prep": None,
         "skills_roadmap": None,
         "linkedin_profile": None,
@@ -484,15 +485,24 @@ if st.session_state.result:
         with _gen_all_col:
             if st.button("Generate all sections ✨", type="primary", use_container_width=True):
                 _generators = [
-                    (generate_cover_letter,    "cover_letter",    "Cover Letter"),
                     (generate_interview_prep,  "interview_prep",  "Interview Prep"),
                     (generate_skills_roadmap,  "skills_roadmap",  "Skills Roadmap"),
                     (generate_linkedin_profile,"linkedin_profile","LinkedIn Profile"),
                 ]
                 _progress = st.progress(0, text="Starting…")
+                if st.session_state.cover_letter is None:
+                    _progress.progress(0, text="Generating Cover Letter…")
+                    try:
+                        st.session_state.cover_letter = generate_cover_letter(
+                            st.session_state.resume,
+                            st.session_state.job,
+                            st.session_state.cover_letter_tone,
+                        )
+                    except AnalyzerError as _err:
+                        st.warning(f"Cover Letter: {_err}")
                 for _i, (_fn, _key, _label) in enumerate(_generators):
                     if st.session_state[_key] is None:
-                        _progress.progress((_i) / len(_generators), text=f"Generating {_label}…")
+                        _progress.progress((_i + 1) / (len(_generators) + 1), text=f"Generating {_label}…")
                         try:
                             st.session_state[_key] = _fn(
                                 st.session_state.resume, st.session_state.job
@@ -511,17 +521,28 @@ if st.session_state.result:
 
     with tab_cover:
         cover: CoverLetter | None = st.session_state.cover_letter
-        if cover is None:
-            if st.button("Generate cover letter", type="primary"):
-                with st.spinner("Writing your cover letter with Gemini..."):
-                    try:
-                        cover = generate_cover_letter(
-                            st.session_state.resume, st.session_state.job
-                        )
-                        st.session_state.cover_letter = cover
-                        st.rerun()
-                    except AnalyzerError as err:
-                        st.error(str(err))
+        _tone = st.radio(
+            "Tone",
+            ["Professional", "Warm & Enthusiastic", "Bold & Direct"],
+            index=["Professional", "Warm & Enthusiastic", "Bold & Direct"].index(
+                st.session_state.cover_letter_tone
+            ),
+            horizontal=True,
+            key="_tone_radio",
+        )
+        if _tone != st.session_state.cover_letter_tone:
+            st.session_state.cover_letter_tone = _tone
+        _btn_label = "Generate cover letter" if cover is None else "Regenerate with this tone"
+        if st.button(_btn_label, type="primary"):
+            with st.spinner("Writing your cover letter with Gemini..."):
+                try:
+                    cover = generate_cover_letter(
+                        st.session_state.resume, st.session_state.job, _tone
+                    )
+                    st.session_state.cover_letter = cover
+                    st.rerun()
+                except AnalyzerError as err:
+                    st.error(str(err))
         if cover:
             render_cover_letter(cover)
 
