@@ -13,6 +13,7 @@ from db import (
     delete_application,
     export_csv,
     get_all_applications,
+    get_score_history,
     get_stats,
     update_notes,
     update_status,
@@ -39,6 +40,32 @@ else:
     col_applied.metric("Applied", stats["by_status"].get("Applied", 0))
     col_interview.metric("Interviewing", stats["by_status"].get("Interviewing", 0))
     col_offer.metric("Offers", stats["by_status"].get("Offer", 0))
+
+    # Score trend chart — shown when 3+ entries exist
+    history = get_score_history()
+    if len(history) >= 3:
+        import altair as alt
+        import pandas as pd
+
+        df = pd.DataFrame(history)
+        df["saved_on"] = pd.to_datetime(df["saved_on"])
+        chart = (
+            alt.Chart(df)
+            .mark_line(point=True, color="#4f46e5")
+            .encode(
+                x=alt.X("saved_on:T", title="Date", axis=alt.Axis(format="%b %d")),
+                y=alt.Y("score:Q", scale=alt.Scale(domain=[0, 100]), title="Fit Score"),
+                tooltip=[
+                    alt.Tooltip("saved_on:T", title="Date", format="%b %d, %Y"),
+                    alt.Tooltip("score:Q", title="Score"),
+                    alt.Tooltip("job_title:N", title="Role"),
+                ],
+            )
+            .properties(height=180, title="Fit Score Trend")
+        )
+        st.altair_chart(chart, use_container_width=True)
+    elif stats["total"] > 0:
+        st.caption(f"Save {3 - stats['total']} more application{'s' if 3 - stats['total'] != 1 else ''} to see your score trend chart.")
 
     st.divider()
 

@@ -121,12 +121,22 @@ _ANALYSIS_SYSTEM = (
     "signals in the job description — assume US market if no location is specified."
 )
 
-_COVER_LETTER_SYSTEM = (
-    "You are a professional career coach writing tailored cover letters. "
-    "You write in first-person from the candidate's perspective. "
-    "You NEVER fabricate experience, skills, or projects not present in the resume. "
-    "Keep each paragraph concise and specific — no filler phrases like 'I am excited to apply'."
-)
+_COVER_LETTER_TONE = {
+    "Professional": "Use a formal, polished tone — confident but restrained. No exclamation marks.",
+    "Warm & Enthusiastic": "Use a warm, genuine tone — show authentic excitement for the role without being over-the-top.",
+    "Bold & Direct": "Use a punchy, confident tone — lead with value, cut all filler, make every sentence earn its place.",
+}
+
+
+def _cover_letter_system(tone: str) -> str:
+    instruction = _COVER_LETTER_TONE.get(tone, _COVER_LETTER_TONE["Professional"])
+    return (
+        "You are a professional career coach writing tailored cover letters. "
+        "You write in first-person from the candidate's perspective. "
+        "You NEVER fabricate experience, skills, or projects not present in the resume. "
+        "Keep each paragraph concise and specific — no filler phrases like 'I am excited to apply'. "
+        f"Tone: {instruction}"
+    )
 
 
 def _build_analysis_prompt(resume: str, job: str) -> str:
@@ -355,12 +365,15 @@ def analyze(resume: str, job: str) -> Analysis:
         raise _handle_api_error(exc)
 
 
-def generate_cover_letter(resume: str, job: str) -> CoverLetter:
-    """Generate a tailored cover letter for the given resume + job."""
+def generate_cover_letter(resume: str, job: str, tone: str = "Professional") -> CoverLetter:
+    """Generate a tailored cover letter for the given resume + job.
+
+    tone: one of 'Professional', 'Warm & Enthusiastic', 'Bold & Direct'.
+    """
     _validate(resume, job)
     client = _client()
     try:
-        response = _generate(client, _build_cover_letter_prompt(resume, job), _COVER_LETTER_SYSTEM, CoverLetter)
+        response = _generate(client, _build_cover_letter_prompt(resume, job), _cover_letter_system(tone), CoverLetter)
         if isinstance(response.parsed, CoverLetter):
             return response.parsed
         return _parse_from_text(response.text, CoverLetter)  # type: ignore[arg-type]
