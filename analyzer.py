@@ -93,6 +93,12 @@ class LinkedInProfile(BaseModel):
     profile_tips: List[str] = Field(description="3-5 specific, actionable tips to improve this candidate's LinkedIn profile for the target role.")
 
 
+class EmailTemplates(BaseModel):
+    follow_up: str = Field(description="Follow-up email to send 1 week after applying with no response. Professional, concise, re-expresses interest and asks for a status update. 3-4 sentences max.")
+    thank_you: str = Field(description="Thank-you email to send within 24 hours after an interview. Warm, specific — references something concrete discussed in the interview. 3-4 sentences max.")
+    rejection_response: str = Field(description="Professional, gracious reply to a rejection email. Keeps the door open for future opportunities and leaves a positive impression. 3-4 sentences max.")
+
+
 class JobMatch(BaseModel):
     job_number: int = Field(description="Which job this is (1, 2, or 3).")
     job_title: str = Field(description="The job title extracted from the job description.")
@@ -173,6 +179,30 @@ _LINKEDIN_SYSTEM = (
     "You NEVER fabricate skills, projects, or achievements not present in the resume. "
     "You know exactly which keywords recruiters and LinkedIn's algorithm surface — and you apply that knowledge concretely."
 )
+
+_EMAIL_SYSTEM = (
+    "You are a professional career coach who writes concise, high-impact job-search emails. "
+    "Every email you write is grounded in the candidate's actual resume and the specific role — "
+    "no generic filler. Emails should be 3-4 sentences: direct, warm, and professional. "
+    "Never fabricate details not present in the resume."
+)
+
+
+def _build_email_prompt(resume: str, job: str) -> str:
+    return (
+        "Write three short, professional job-search emails for this candidate applying to this role.\n\n"
+        "=== JOB DESCRIPTION ===\n"
+        f"{job}\n\n"
+        "=== CANDIDATE RESUME ===\n"
+        f"{resume}\n\n"
+        "Write:\n"
+        "1. follow_up — sent 1 week after applying with no response; politely asks for a status update\n"
+        "2. thank_you — sent within 24h of an interview; references at least one specific topic likely "
+        "discussed given the role and resume\n"
+        "3. rejection_response — a gracious, door-open reply to a rejection; professional and memorable\n"
+        "Each email: 3-4 sentences, no subject line, no salutation boilerplate — body only."
+    )
+
 
 _COMPARISON_SYSTEM = (
     "You are a senior technical recruiter who has reviewed thousands of applications. "
@@ -422,6 +452,21 @@ def generate_linkedin_profile(resume: str, job: str) -> LinkedInProfile:
         if isinstance(response.parsed, LinkedInProfile):
             return response.parsed
         return _parse_from_text(response.text, LinkedInProfile)  # type: ignore[arg-type]
+    except AnalyzerError:
+        raise
+    except Exception as exc:
+        raise _handle_api_error(exc)
+
+
+def generate_email_templates(resume: str, job: str) -> EmailTemplates:
+    """Generate follow-up, thank-you, and rejection-response email templates."""
+    _validate(resume, job)
+    client = _client()
+    try:
+        response = _generate(client, _build_email_prompt(resume, job), _EMAIL_SYSTEM, EmailTemplates)
+        if isinstance(response.parsed, EmailTemplates):
+            return response.parsed
+        return _parse_from_text(response.text, EmailTemplates)  # type: ignore[arg-type]
     except AnalyzerError:
         raise
     except Exception as exc:

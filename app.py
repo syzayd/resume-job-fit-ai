@@ -17,9 +17,9 @@ for _secret_key in ("GEMINI_API_KEY", "GOOGLE_API_KEY"):
         os.environ[_secret_key] = st.secrets[_secret_key]
 
 from analyzer import (
-    Analysis, AnalyzerError, CoverLetter, InterviewPrep, LinkedInProfile, SkillsRoadmap,
-    analyze, generate_cover_letter, generate_interview_prep, generate_linkedin_profile,
-    generate_skills_roadmap,
+    Analysis, AnalyzerError, CoverLetter, EmailTemplates, InterviewPrep, LinkedInProfile,
+    SkillsRoadmap, analyze, generate_cover_letter, generate_email_templates,
+    generate_interview_prep, generate_linkedin_profile, generate_skills_roadmap,
 )
 from db import save_application
 
@@ -69,6 +69,7 @@ def analysis_as_text(
     prep: InterviewPrep | None = None,
     roadmap: SkillsRoadmap | None = None,
     linkedin: LinkedInProfile | None = None,
+    emails: EmailTemplates | None = None,
 ) -> str:
     lines = [
         "RESUME JOB-FIT ANALYSIS",
@@ -118,6 +119,11 @@ def analysis_as_text(
                   "SKILLS TO ADD", ", ".join(linkedin.skills_to_add), "",
                   "PROFILE TIPS"]
         lines += [f"  - {tip}" for tip in linkedin.profile_tips]
+    if emails:
+        lines += ["", "=" * 40, "EMAIL TEMPLATES", "=" * 40, "",
+                  "--- APPLICATION FOLLOW-UP ---", emails.follow_up, "",
+                  "--- POST-INTERVIEW THANK YOU ---", emails.thank_you, "",
+                  "--- REJECTION RESPONSE ---", emails.rejection_response]
     return "\n".join(lines)
 
 
@@ -127,6 +133,7 @@ def export_docx(
     prep: InterviewPrep | None = None,
     roadmap: SkillsRoadmap | None = None,
     linkedin: LinkedInProfile | None = None,
+    emails: EmailTemplates | None = None,
 ) -> bytes:
     """Build a formatted Word document and return it as bytes."""
     from docx import Document
@@ -226,6 +233,18 @@ def export_docx(
         doc.add_heading("Profile Tips", 2)
         for tip in linkedin.profile_tips:
             doc.add_paragraph(tip, style="List Bullet")
+
+    # Email templates
+    if emails:
+        doc.add_page_break()
+        doc.add_heading("Email Templates", 1)
+        for label, body in [
+            ("Application Follow-up", emails.follow_up),
+            ("Post-Interview Thank You", emails.thank_you),
+            ("Rejection Response", emails.rejection_response),
+        ]:
+            doc.add_heading(label, 2)
+            doc.add_paragraph(body)
 
     buf = io.BytesIO()
     doc.save(buf)
@@ -353,6 +372,19 @@ def render_skills_roadmap(roadmap: SkillsRoadmap) -> None:
                     st.markdown(f"- **{r.name}** — {r.provider} _{r.type}_")
 
 
+def render_email_templates(emails: EmailTemplates) -> None:
+    for label, body in [
+        ("📩 Application Follow-up", emails.follow_up),
+        ("🤝 Post-Interview Thank You", emails.thank_you),
+        ("🚪 Graceful Rejection Response", emails.rejection_response),
+    ]:
+        st.subheader(label)
+        st.write(body)
+        with st.expander("Copy"):
+            st.code(body, language=None)
+        st.write("")
+
+
 def render_linkedin_profile(profile: LinkedInProfile) -> None:
     st.subheader("Headline")
     st.markdown(f"> {_html.escape(profile.headline)}", unsafe_allow_html=False)
@@ -388,6 +420,7 @@ def _init() -> None:
         "interview_prep": None,
         "skills_roadmap": None,
         "linkedin_profile": None,
+        "email_templates": None,
         "tracker_saved": False,
     }
     for k, v in defaults.items():
@@ -424,6 +457,7 @@ with col_b:
             st.session_state.interview_prep = None
             st.session_state.skills_roadmap = None
             st.session_state.linkedin_profile = None
+            st.session_state.email_templates = None
             st.rerun()
         except Exception:
             st.error("Could not read the PDF. Try a text-based PDF or paste your resume below.")
@@ -447,6 +481,7 @@ with btn_sample:
         st.session_state.interview_prep = None
         st.session_state.skills_roadmap = None
         st.session_state.linkedin_profile = None
+        st.session_state.email_templates = None
         st.rerun()
 with btn_clear:
     if st.button("Clear", use_container_width=True):
@@ -458,6 +493,7 @@ with btn_clear:
         st.session_state.interview_prep = None
         st.session_state.skills_roadmap = None
         st.session_state.linkedin_profile = None
+        st.session_state.email_templates = None
         st.rerun()
 
 if analyze_clicked:
@@ -468,6 +504,7 @@ if analyze_clicked:
             st.session_state.interview_prep = None
             st.session_state.skills_roadmap = None
             st.session_state.linkedin_profile = None
+            st.session_state.email_templates = None
             st.session_state.tracker_saved = False
         except AnalyzerError as err:
             st.error(str(err))
@@ -478,16 +515,17 @@ if st.session_state.result:
     result: Analysis = st.session_state.result
 
     # "Generate all sections" — runs all 4 AI generators in one click
-    _todo = [k for k in ("cover_letter", "interview_prep", "skills_roadmap", "linkedin_profile")
+    _todo = [k for k in ("cover_letter", "interview_prep", "skills_roadmap", "linkedin_profile", "email_templates")
              if st.session_state[k] is None]
     if _todo:
         _gen_all_col, _ = st.columns([2, 5])
         with _gen_all_col:
             if st.button("Generate all sections ✨", type="primary", use_container_width=True):
                 _generators = [
-                    (generate_interview_prep,  "interview_prep",  "Interview Prep"),
-                    (generate_skills_roadmap,  "skills_roadmap",  "Skills Roadmap"),
-                    (generate_linkedin_profile,"linkedin_profile","LinkedIn Profile"),
+                    (generate_interview_prep,   "interview_prep",   "Interview Prep"),
+                    (generate_skills_roadmap,   "skills_roadmap",   "Skills Roadmap"),
+                    (generate_linkedin_profile, "linkedin_profile", "LinkedIn Profile"),
+                    (generate_email_templates,  "email_templates",  "Email Templates"),
                 ]
                 _progress = st.progress(0, text="Starting…")
                 if st.session_state.cover_letter is None:
@@ -512,8 +550,8 @@ if st.session_state.result:
                 _progress.progress(1.0, text="All sections ready!")
                 st.rerun()
 
-    tab_analysis, tab_cover, tab_interview, tab_roadmap, tab_linkedin = st.tabs(
-        ["Analysis", "Cover Letter", "Interview Prep", "Skills Roadmap", "LinkedIn Profile"]
+    tab_analysis, tab_cover, tab_interview, tab_roadmap, tab_linkedin, tab_emails = st.tabs(
+        ["Analysis", "Cover Letter", "Interview Prep", "Skills Roadmap", "LinkedIn Profile", "Emails"]
     )
 
     with tab_analysis:
@@ -598,6 +636,27 @@ if st.session_state.result:
         if li_profile:
             render_linkedin_profile(li_profile)
 
+    with tab_emails:
+        emails: EmailTemplates | None = st.session_state.email_templates
+        if emails is None:
+            st.caption(
+                "Three ready-to-send email templates grounded in your resume and this role: "
+                "a follow-up after applying, a thank-you note after your interview, "
+                "and a graceful reply to a rejection."
+            )
+            if st.button("Generate email templates", type="primary"):
+                with st.spinner("Drafting email templates with Gemini..."):
+                    try:
+                        emails = generate_email_templates(
+                            st.session_state.resume, st.session_state.job
+                        )
+                        st.session_state.email_templates = emails
+                        st.rerun()
+                    except AnalyzerError as err:
+                        st.error(str(err))
+        if emails:
+            render_email_templates(emails)
+
     st.divider()
     _dl_txt, _dl_docx, _ = st.columns([1, 1, 4])
     with _dl_txt:
@@ -609,6 +668,7 @@ if st.session_state.result:
                 st.session_state.interview_prep,
                 st.session_state.skills_roadmap,
                 st.session_state.linkedin_profile,
+                st.session_state.email_templates,
             ),
             file_name="resume_analysis.txt",
             mime="text/plain",
@@ -623,6 +683,7 @@ if st.session_state.result:
                 st.session_state.interview_prep,
                 st.session_state.skills_roadmap,
                 st.session_state.linkedin_profile,
+                st.session_state.email_templates,
             ),
             file_name="resume_analysis.docx",
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",

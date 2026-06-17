@@ -67,6 +67,62 @@ else:
     elif stats["total"] > 0:
         st.caption(f"Save {3 - stats['total']} more application{'s' if 3 - stats['total'] != 1 else ''} to see your score trend chart.")
 
+    # --- Analytics expander --------------------------------------------------
+    all_apps = get_all_applications()
+
+    with st.expander("📊 Analytics", expanded=False):
+        import altair as alt
+        import pandas as pd
+
+        left_chart, right_chart = st.columns(2)
+
+        with left_chart:
+            pipeline_df = pd.DataFrame([
+                {"Status": s, "Count": stats["by_status"].get(s, 0)}
+                for s in STATUSES
+            ])
+            pipeline_chart = (
+                alt.Chart(pipeline_df)
+                .mark_bar()
+                .encode(
+                    x=alt.X("Count:Q", title="Applications"),
+                    y=alt.Y("Status:N", sort=STATUSES, title=None),
+                    color=alt.condition(
+                        alt.datum.Count > 0,
+                        alt.value("#4f46e5"),
+                        alt.value("#e5e7eb"),
+                    ),
+                    tooltip=["Status:N", "Count:Q"],
+                )
+                .properties(height=170, title="Application Pipeline")
+            )
+            st.altair_chart(pipeline_chart, use_container_width=True)
+
+        with right_chart:
+            score_df = pd.DataFrame({"Score": [a["score"] for a in all_apps]})
+            hist_chart = (
+                alt.Chart(score_df)
+                .mark_bar(color="#4f46e5", opacity=0.75)
+                .encode(
+                    x=alt.X("Score:Q", bin=alt.Bin(step=10), title="Fit Score"),
+                    y=alt.Y("count():Q", title="Count"),
+                    tooltip=[
+                        alt.Tooltip("Score:Q", bin=True, title="Score range"),
+                        alt.Tooltip("count():Q", title="Applications"),
+                    ],
+                )
+                .properties(height=170, title="Score Distribution")
+            )
+            st.altair_chart(hist_chart, use_container_width=True)
+
+        applied_pool = sum(
+            stats["by_status"].get(s, 0) for s in ["Applied", "Interviewing", "Offer", "Rejected"]
+        )
+        offers = stats["by_status"].get("Offer", 0)
+        if applied_pool > 0 and offers > 0:
+            rate = round(offers / applied_pool * 100)
+            st.metric("Offer rate", f"{rate}%", help="Offers ÷ all progressed applications")
+
     st.divider()
 
     # --- Filter bar ----------------------------------------------------------
@@ -78,7 +134,7 @@ else:
     with sort_col:
         sort_by = st.selectbox("Sort by", ["Newest first", "Score (high→low)", "Score (low→high)"])
 
-    apps = get_all_applications()
+    apps = list(all_apps)  # reuse already-fetched data
 
     # Apply filter
     if status_filter != "All":
