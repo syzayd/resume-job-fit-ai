@@ -93,6 +93,16 @@ class LinkedInProfile(BaseModel):
     profile_tips: List[str] = Field(description="3-5 specific, actionable tips to improve this candidate's LinkedIn profile for the target role.")
 
 
+class ResumeHealth(BaseModel):
+    overall_score: int = Field(description="Overall resume quality score 0-100.")
+    writing_score: int = Field(description="Clarity, active voice, and conciseness score 0-100.")
+    quantification_score: int = Field(description="How well bullets are backed by numbers and outcomes, 0-100.")
+    verb_strength_score: int = Field(description="Strength and variety of action verbs, 0-100.")
+    length_assessment: str = Field(description="E.g. 'Ideal (1 page)', 'Too long (3 pages — aim for 1–2)', 'Too short (less than half a page)'.")
+    top_issues: List[str] = Field(description="3-5 most important problems with the resume — specific and observable.")
+    quick_fixes: List[str] = Field(description="3-5 concrete changes the candidate can make today to improve the resume.")
+
+
 class EmailTemplates(BaseModel):
     follow_up: str = Field(description="Follow-up email to send 1 week after applying with no response. Professional, concise, re-expresses interest and asks for a status update. 3-4 sentences max.")
     thank_you: str = Field(description="Thank-you email to send within 24 hours after an interview. Warm, specific — references something concrete discussed in the interview. 3-4 sentences max.")
@@ -179,6 +189,28 @@ _LINKEDIN_SYSTEM = (
     "You NEVER fabricate skills, projects, or achievements not present in the resume. "
     "You know exactly which keywords recruiters and LinkedIn's algorithm surface — and you apply that knowledge concretely."
 )
+
+_RESUME_HEALTH_SYSTEM = (
+    "You are a professional resume coach with 20 years of experience reviewing resumes across industries. "
+    "You evaluate resumes on their own merit — writing quality, impact, clarity, and ATS-readiness — "
+    "without comparing to any specific job. You are specific and direct: no vague praise, no invented issues. "
+    "All feedback is grounded entirely in what you can observe in the resume text itself."
+)
+
+
+def _build_resume_health_prompt(resume: str) -> str:
+    return (
+        "Evaluate the quality of this resume as a standalone document.\n\n"
+        "=== RESUME ===\n"
+        f"{resume}\n\n"
+        "Score it 0-100 overall, then score these three dimensions independently:\n"
+        "- writing_score: clarity, active voice, no jargon, concise bullets\n"
+        "- quantification_score: percentage of bullets backed by real numbers or measurable outcomes\n"
+        "- verb_strength_score: variety and impact of action verbs (avoid 'responsible for', 'helped', 'worked on')\n"
+        "Assess the page length. Then identify the 3-5 most important specific issues "
+        "and give 3-5 concrete quick fixes the candidate can implement today."
+    )
+
 
 _EMAIL_SYSTEM = (
     "You are a professional career coach who writes concise, high-impact job-search emails. "
@@ -452,6 +484,27 @@ def generate_linkedin_profile(resume: str, job: str) -> LinkedInProfile:
         if isinstance(response.parsed, LinkedInProfile):
             return response.parsed
         return _parse_from_text(response.text, LinkedInProfile)  # type: ignore[arg-type]
+    except AnalyzerError:
+        raise
+    except Exception as exc:
+        raise _handle_api_error(exc)
+
+
+def analyze_resume_health(resume: str) -> ResumeHealth:
+    """Evaluate the resume standalone — no job description needed."""
+    if not resume.strip():
+        raise AnalyzerError("Please paste your resume before checking its health.")
+    if len(resume) > MAX_INPUT_CHARS:
+        raise AnalyzerError(
+            f"Resume is too long (limit {MAX_INPUT_CHARS:,} characters). "
+            "Trim to the most relevant sections and try again."
+        )
+    client = _client()
+    try:
+        response = _generate(client, _build_resume_health_prompt(resume), _RESUME_HEALTH_SYSTEM, ResumeHealth)
+        if isinstance(response.parsed, ResumeHealth):
+            return response.parsed
+        return _parse_from_text(response.text, ResumeHealth)  # type: ignore[arg-type]
     except AnalyzerError:
         raise
     except Exception as exc:

@@ -1,6 +1,23 @@
 # Handoff: Upgrade Plan Session — 2026-06-17
 
-## What This Session Did
+## ✅ Progress as of 2026-06-17 (same session, continued)
+
+**8 of 10 planned features shipped** across 4 commits:
+
+| Commit | Features |
+|---|---|
+| `f4ee7f6` | 1A Salary Range + 2A Bullet Diff Viewer |
+| `b0c3121` | 1B Score Trend Chart + 2C Cover Letter Tone |
+| `26e4b24` | 2B Analytics Dashboard + 3B Email Templates |
+| `(current)` | 2D Resume Health Tab |
+
+**App is now:** 3-page Streamlit app — Main (**7 tabs**) + Compare Jobs + Job Tracker
+
+**Remaining from plan:** 3A Company Research Page, 3C Tailored Resume Export
+
+---
+
+## What This Session Did (original)
 
 Read and analyzed all existing documentation (README, CLAUDE.md, all handoffs, all build logs)
 and the full source code. No code was changed. This session produced a structured upgrade roadmap
@@ -138,20 +155,20 @@ to take the app from "feature-complete MVP" to "flagship portfolio project".
 
 ---
 
-## Recommended Execution Order
+## Execution Status
 
-| # | Feature | Est. Time |
+| # | Feature | Status |
 |---|---|---|
-| 1 | 1C — Load Sample Data | 30 min |
-| 2 | 1A — Salary Range Estimator | 45 min |
-| 3 | 2A — Diff Viewer (Rewrites) | 1 hr |
-| 4 | 1B — Score Trend Chart | 1 hr |
-| 5 | 2C — Cover Letter Tone | 1 hr |
-| 6 | 2B — Analytics Dashboard | 1.5 hr |
-| 7 | 3B — Email Templates | 2 hr |
-| 8 | 2D — Resume Health Tab | 2 hr |
-| 9 | 3C — Tailored Resume Export | 2 hr |
-| 10 | 3A — Company Research Page | 2.5 hr |
+| 1 | 1C — Load Sample Data | ✅ Was already shipped |
+| 2 | 1A — Salary Range Estimator | ✅ Done (`f4ee7f6`) |
+| 3 | 2A — Diff Viewer (Rewrites) | ✅ Done (`f4ee7f6`) |
+| 4 | 1B — Score Trend Chart | ✅ Done (`b0c3121`) |
+| 5 | 2C — Cover Letter Tone | ✅ Done (`b0c3121`) |
+| 6 | 2B — Analytics Dashboard | ✅ Done (`26e4b24`) |
+| 7 | 3B — Email Templates | ✅ Done (`26e4b24`) |
+| 8 | 2D — Resume Health Tab | ✅ Done (current session) |
+| 9 | 3C — Tailored Resume Export | ⬜ Next |
+| 10 | 3A — Company Research Page | ⬜ Next |
 
 ---
 
@@ -181,4 +198,4 @@ pytest tests/ -v
 
 ## What to Tell Claude at the Start of Next Session
 
-> "Read handoffs/HANDOFF-UPGRADE-PLAN-2026-06-17.md and start executing Phase 1 of the upgrade plan. Begin with feature 1C (Load Sample Data), then 1A (Salary Range), then 2A (Diff Viewer). Run tests after each feature."
+> "Read handoffs/HANDOFF-UPGRADE-PLAN-2026-06-17.md and continue with the two remaining features: 3C (Tailored Resume Export) and 3A (Company Research Page). Run tests after each."

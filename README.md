@@ -1,6 +1,6 @@
 # Resume Job-Fit AI
 
-Paste a **job description** and your **resume** (or upload a PDF) → get an instant **fit score (0–100)**, the **keywords you're missing**, **AI-rewritten resume bullets**, a **tailored cover letter**, **interview prep**, a **skills gap roadmap**, and a **LinkedIn profile optimizer** — all in one click.
+Paste a **job description** and your **resume** (or upload a PDF) → get an instant **fit score**, **salary range estimate**, **keywords you're missing**, **AI-rewritten bullet diff viewer**, a **tailored cover letter** (3 tones), **interview prep**, a **skills gap roadmap**, **LinkedIn optimizer**, **email templates**, and a **standalone resume health check** — all in one click.
 
 Built to answer a real question every applicant has: *"How well does my resume actually match this job — and what do I do about it?"*
 
@@ -18,18 +18,21 @@ Built to answer a real question every applicant has: *"How well does my resume a
 | Feature | Details |
 |---|---|
 | **Fit score (0–100)** | Honest one-line verdict on how well you match |
+| **Salary range estimate** | Market salary estimate pulled from the job description — shown right below the score |
 | **Matched / missing keywords** | Color-coded chips showing exactly which skills to surface |
-| **Tailored bullet rewrites** | Your real bullets, rewritten for impact and keyword alignment — never fabricated |
+| **Bullet diff viewer** | Side-by-side original vs AI rewrite for every bullet — copy individually or all at once |
 | **ATS tips** | Concrete phrases to add so applicant-tracking systems don't filter you out |
-| **Cover letter** | Three-paragraph, role-specific draft grounded in your actual resume — copyable in one click |
+| **Cover letter (3 tones)** | Professional / Warm & Enthusiastic / Bold & Direct — regenerate instantly with any tone |
 | **Interview prep** | 5–7 tailored questions with why-asked context and tips from your real background |
 | **Skills gap roadmap** | Prioritized gaps (High / Medium / Low), named courses + providers, quick wins this week |
 | **LinkedIn optimizer** | AI-generated headline, About section, skills to add, and profile tips — all role-specific and copyable |
+| **Email templates** | Three ready-to-send emails: application follow-up, post-interview thank-you, rejection response |
+| **Resume Health check** | Standalone resume quality score — writing clarity, quantification, verb strength, top issues + quick fixes |
 | **Generate all sections ✨** | One button to generate every AI section at once — no tab-by-tab clicking |
-| **Multi-job comparison** | Paste 2–3 job descriptions — get a ranked table of which role fits best, strengths vs gaps per job, and a suggested apply order |
+| **Multi-job comparison** | Paste 2–3 job descriptions — ranked fit, strengths vs gaps per job, suggested apply order |
 | **PDF upload** | Upload your resume PDF — text is extracted automatically |
 | **Download (.txt / .docx)** | Export everything as plain text or a formatted Word document |
-| **Job Application Tracker** | Save any analysis to a local SQLite DB — track status (Applied/Interviewing/Offer/Rejected), add notes, see stats, export CSV |
+| **Job Application Tracker** | Save analyses to local SQLite — track status, add notes, view score trend chart + analytics dashboard, export CSV |
 
 ---
 
@@ -83,7 +86,7 @@ Then click **Load sample → Analyze fit → Generate all sections ✨** to see 
 
 ```
 resume-job-fit-ai/
-├── app.py                        # Streamlit UI — 5 tabs, Generate All, PDF upload
+├── app.py                        # Streamlit UI — 7 tabs, Generate All, PDF upload
 ├── analyzer.py                   # All Gemini logic — schemas, prompts, retry, error handling
 ├── requirements.txt
 ├── .env.example                  # GEMINI_API_KEY=your-key-here  (never commit .env)
@@ -142,7 +145,13 @@ resume-job-fit-ai/
 - [x] DOCX export (formatted Word document)
 - [x] Tests + GitHub Actions CI
 - [x] Job application tracker (SQLite — save, track status, export CSV)
-- [x] Update demo screenshot (3-page composite from live app)
+- [x] Salary range estimator (pulled from JD, shown below score)
+- [x] Bullet diff viewer (side-by-side original vs rewrite, per-bullet copy)
+- [x] Cover letter tone selector (Professional / Warm / Bold)
+- [x] Score trend chart in job tracker (Altair line chart, 3+ entries)
+- [x] Analytics dashboard in job tracker (pipeline funnel + score histogram)
+- [x] Email templates (follow-up, thank-you, rejection response)
+- [x] Resume Health check (standalone quality score + quick fixes)
 
 ---
 
