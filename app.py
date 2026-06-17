@@ -18,8 +18,9 @@ for _secret_key in ("GEMINI_API_KEY", "GOOGLE_API_KEY"):
 
 from analyzer import (
     Analysis, AnalyzerError, CoverLetter, EmailTemplates, InterviewPrep, LinkedInProfile,
-    SkillsRoadmap, analyze, generate_cover_letter, generate_email_templates,
-    generate_interview_prep, generate_linkedin_profile, generate_skills_roadmap,
+    ResumeHealth, SkillsRoadmap, analyze, analyze_resume_health, generate_cover_letter,
+    generate_email_templates, generate_interview_prep, generate_linkedin_profile,
+    generate_skills_roadmap,
 )
 from db import save_application
 
@@ -372,6 +373,50 @@ def render_skills_roadmap(roadmap: SkillsRoadmap) -> None:
                     st.markdown(f"- **{r.name}** — {r.provider} _{r.type}_")
 
 
+def render_resume_health(health: ResumeHealth) -> None:
+    color = score_color(health.overall_score)
+    st.markdown(
+        f"<div style='text-align:center;margin:0.5rem 0;'>"
+        f"<span style='font-size:3.5rem;font-weight:800;color:{color};'>{health.overall_score}</span>"
+        f"<span style='font-size:1.2rem;color:#888;'>/100</span></div>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        f"<p style='text-align:center;color:#6b7280;'>{_html.escape(health.length_assessment)}</p>",
+        unsafe_allow_html=True,
+    )
+    st.divider()
+
+    st.subheader("Score breakdown")
+    c1, c2, c3 = st.columns(3)
+    for col, label, val in [
+        (c1, "Writing clarity", health.writing_score),
+        (c2, "Quantification", health.quantification_score),
+        (c3, "Verb strength", health.verb_strength_score),
+    ]:
+        with col:
+            sub_color = score_color(val)
+            st.markdown(
+                f"<div style='text-align:center;'>"
+                f"<div style='font-size:0.8rem;color:#6b7280;margin-bottom:4px;'>{label}</div>"
+                f"<div style='font-size:2rem;font-weight:700;color:{sub_color};'>{val}</div>"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+            st.progress(val / 100)
+
+    st.divider()
+    col_issues, col_fixes = st.columns(2)
+    with col_issues:
+        st.subheader("Top issues")
+        for issue in health.top_issues:
+            st.markdown(f"- {_html.escape(issue)}", unsafe_allow_html=False)
+    with col_fixes:
+        st.subheader("Quick fixes")
+        for fix in health.quick_fixes:
+            st.markdown(f"- {_html.escape(fix)}", unsafe_allow_html=False)
+
+
 def render_email_templates(emails: EmailTemplates) -> None:
     for label, body in [
         ("📩 Application Follow-up", emails.follow_up),
@@ -421,6 +466,7 @@ def _init() -> None:
         "skills_roadmap": None,
         "linkedin_profile": None,
         "email_templates": None,
+        "resume_health": None,
         "tracker_saved": False,
     }
     for k, v in defaults.items():
@@ -458,6 +504,7 @@ with col_b:
             st.session_state.skills_roadmap = None
             st.session_state.linkedin_profile = None
             st.session_state.email_templates = None
+            st.session_state.resume_health = None
             st.rerun()
         except Exception:
             st.error("Could not read the PDF. Try a text-based PDF or paste your resume below.")
@@ -482,6 +529,7 @@ with btn_sample:
         st.session_state.skills_roadmap = None
         st.session_state.linkedin_profile = None
         st.session_state.email_templates = None
+        st.session_state.resume_health = None
         st.rerun()
 with btn_clear:
     if st.button("Clear", use_container_width=True):
@@ -494,6 +542,7 @@ with btn_clear:
         st.session_state.skills_roadmap = None
         st.session_state.linkedin_profile = None
         st.session_state.email_templates = None
+        st.session_state.resume_health = None
         st.rerun()
 
 if analyze_clicked:
@@ -550,8 +599,8 @@ if st.session_state.result:
                 _progress.progress(1.0, text="All sections ready!")
                 st.rerun()
 
-    tab_analysis, tab_cover, tab_interview, tab_roadmap, tab_linkedin, tab_emails = st.tabs(
-        ["Analysis", "Cover Letter", "Interview Prep", "Skills Roadmap", "LinkedIn Profile", "Emails"]
+    tab_analysis, tab_cover, tab_interview, tab_roadmap, tab_linkedin, tab_emails, tab_health = st.tabs(
+        ["Analysis", "Cover Letter", "Interview Prep", "Skills Roadmap", "LinkedIn Profile", "Emails", "Resume Health"]
     )
 
     with tab_analysis:
@@ -656,6 +705,24 @@ if st.session_state.result:
                         st.error(str(err))
         if emails:
             render_email_templates(emails)
+
+    with tab_health:
+        rh: ResumeHealth | None = st.session_state.resume_health
+        if rh is None:
+            st.caption(
+                "Evaluates your resume on its own — writing quality, quantification, "
+                "verb strength, and length — independent of any specific job."
+            )
+            if st.button("Check resume health", type="primary"):
+                with st.spinner("Analyzing your resume with Gemini..."):
+                    try:
+                        rh = analyze_resume_health(st.session_state.resume)
+                        st.session_state.resume_health = rh
+                        st.rerun()
+                    except AnalyzerError as err:
+                        st.error(str(err))
+        if rh:
+            render_resume_health(rh)
 
     st.divider()
     _dl_txt, _dl_docx, _ = st.columns([1, 1, 4])
