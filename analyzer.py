@@ -42,6 +42,7 @@ class BulletRewrite(BaseModel):
 class Analysis(BaseModel):
     score: int = Field(description="Overall fit score from 0 to 100.")
     verdict: str = Field(description="One-line honest summary of the fit.")
+    salary_range: str = Field(default="", description="Estimated market salary range for this role (e.g. '$90k–$120k, US remote'). Base the estimate on the job title, required skills, and seniority level. If location is unspecified, assume US market.")
     matched_keywords: List[str] = Field(description="Important skills/terms the resume already covers.")
     missing_keywords: List[str] = Field(description="Important skills/terms from the job the resume is missing.")
     bullet_rewrites: List[BulletRewrite] = Field(description="2-4 tailored rewrites of real resume bullets.")
@@ -115,7 +116,9 @@ _ANALYSIS_SYSTEM = (
     "You assess how well a resume fits a specific job. You are specific, honest, and constructive. "
     "Critically: you NEVER invent experience, skills, or metrics the candidate does not have. "
     "Bullet rewrites must stay truthful to the original resume — improve clarity, impact, and keyword "
-    "alignment, and where a real number is unknown, use a clear placeholder like [X] rather than inventing one."
+    "alignment, and where a real number is unknown, use a clear placeholder like [X] rather than inventing one. "
+    "You also estimate realistic market salary ranges based on the role title, required skills, and seniority "
+    "signals in the job description — assume US market if no location is specified."
 )
 
 _COVER_LETTER_SYSTEM = (
@@ -135,7 +138,8 @@ def _build_analysis_prompt(resume: str, job: str) -> str:
         f"{resume}\n\n"
         "Score the fit 0-100. List the most important matched and missing keywords/skills. "
         "Rewrite 2-4 of the candidate's actual resume bullets to better target this job (truthfully). "
-        "Give a short, concrete summary of how to improve the application and specific ATS tips."
+        "Give a short, concrete summary of how to improve the application and specific ATS tips. "
+        "Estimate the realistic market salary range for this role based on the job title, required skills, and seniority level."
     )
 
 
