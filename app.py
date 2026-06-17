@@ -75,6 +75,10 @@ def analysis_as_text(
         "=" * 40,
         f"Score: {result.score}/100",
         f"Verdict: {result.verdict}",
+    ]
+    if result.salary_range:
+        lines += [f"Estimated Salary Range: {result.salary_range}"]
+    lines += [
         "",
         "MATCHED KEYWORDS",
         ", ".join(result.matched_keywords) or "None",
@@ -86,7 +90,7 @@ def analysis_as_text(
     ]
     for rw in result.bullet_rewrites:
         lines += [f"  Before: {rw.original}", f"  After:  {rw.improved}", ""]
-    lines += ["HOW TO IMPROVE", result.summary, "", "ATS TIPS"]
+    lines += ["", "HOW TO IMPROVE", result.summary, "", "ATS TIPS"]
     lines += [f"  - {tip}" for tip in result.ats_tips]
     if cover:
         lines += ["", "=" * 40, "COVER LETTER", "=" * 40, "",
@@ -142,6 +146,10 @@ def export_docx(
     run.bold = True
     run.font.size = Pt(18)
     doc.add_paragraph(result.verdict)
+    if result.salary_range:
+        p = doc.add_paragraph()
+        p.add_run("Estimated Salary Range: ").bold = True
+        p.add_run(result.salary_range)
 
     # Keywords
     doc.add_heading("Matched Keywords", 2)
@@ -238,6 +246,14 @@ def render_analysis(result: Analysis) -> None:
         f"<p style='text-align:center;font-size:1.1rem;'>{_html.escape(result.verdict)}</p>",
         unsafe_allow_html=True,
     )
+    if result.salary_range:
+        st.markdown(
+            f"<div style='text-align:center;margin:0.25rem 0 0.75rem;'>"
+            f"<span style='background:#fefce8;color:#854d0e;border:1px solid #fde68a;"
+            f"padding:5px 14px;border-radius:20px;font-size:0.9rem;font-weight:600;'>"
+            f"💰 Estimated salary: {_html.escape(result.salary_range)}</span></div>",
+            unsafe_allow_html=True,
+        )
     st.divider()
 
     left, right = st.columns(2)
@@ -250,10 +266,36 @@ def render_analysis(result: Analysis) -> None:
 
     st.divider()
     st.subheader("Tailored bullet rewrites")
-    for rw in result.bullet_rewrites:
-        with st.container(border=True):
-            st.markdown(f"**Before:** {rw.original}")
-            st.markdown(f"**After &nbsp; :** {rw.improved}")
+    st.caption("Original on the left · AI rewrite on the right · Copy individual rewrites or all at once.")
+    for i, rw in enumerate(result.bullet_rewrites):
+        left_col, right_col = st.columns(2)
+        with left_col:
+            st.markdown(
+                f"<div style='background:#f3f4f6;border-left:3px solid #9ca3af;"
+                f"padding:12px 14px;border-radius:6px;font-size:0.88rem;'>"
+                f"<div style='color:#6b7280;font-size:0.72rem;font-weight:700;"
+                f"text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;'>Original</div>"
+                f"{_html.escape(rw.original)}</div>",
+                unsafe_allow_html=True,
+            )
+        with right_col:
+            st.markdown(
+                f"<div style='background:#f0fdf4;border-left:3px solid #16a34a;"
+                f"padding:12px 14px;border-radius:6px;font-size:0.88rem;'>"
+                f"<div style='color:#16a34a;font-size:0.72rem;font-weight:700;"
+                f"text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;'>Rewritten ✓</div>"
+                f"{_html.escape(rw.improved)}</div>",
+                unsafe_allow_html=True,
+            )
+            with st.expander(f"Copy rewrite #{i + 1}"):
+                st.code(rw.improved, language=None)
+        st.write("")
+    if result.bullet_rewrites:
+        with st.expander("Copy all rewrites"):
+            st.code(
+                "\n\n".join(rw.improved for rw in result.bullet_rewrites),
+                language=None,
+            )
 
     st.divider()
     st.subheader("How to improve this application")
