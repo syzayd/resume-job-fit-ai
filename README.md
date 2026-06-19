@@ -30,6 +30,8 @@ Built to answer a real question every applicant has: *"How well does my resume a
 | **Resume Health check** | Standalone resume quality score — writing clarity, quantification, verb strength, top issues + quick fixes |
 | **Generate all sections ✨** | One button to generate every AI section at once — no tab-by-tab clicking |
 | **Multi-job comparison** | Paste 2–3 job descriptions — ranked fit, strengths vs gaps per job, suggested apply order |
+| **Company Research** | Enter a company name + role — get culture summary, interview format, what they value, red flags, and prep tips |
+| **Tailored Resume export** | Download a job-specific resume .docx with AI rewrites already substituted and ATS tips pre-filled |
 | **PDF upload** | Upload your resume PDF — text is extracted automatically |
 | **Download (.txt / .docx)** | Export everything as plain text or a formatted Word document |
 | **Job Application Tracker** | Save analyses to local SQLite — track status, add notes, view score trend chart + analytics dashboard, export CSV |
@@ -98,7 +100,8 @@ resume-job-fit-ai/
 ├── .github/workflows/ci.yml      # GitHub Actions CI (pytest on every push)
 ├── pages/
 │   ├── 1_Compare_Jobs.py         # Multi-job comparison page
-│   └── 2_Job_Tracker.py          # Application tracker page
+│   ├── 2_Job_Tracker.py          # Application tracker page
+│   └── 3_Company_Research.py     # Company culture, interview format, and prep tips
 ├── tests/
 │   └── test_analyzer.py          # 26 unit tests (Gemini mocked)
 ├── db.py                         # SQLite persistence layer
@@ -152,6 +155,8 @@ resume-job-fit-ai/
 - [x] Analytics dashboard in job tracker (pipeline funnel + score histogram)
 - [x] Email templates (follow-up, thank-you, rejection response)
 - [x] Resume Health check (standalone quality score + quick fixes)
+- [x] Company Research page (culture, interview format, red flags, prep tips)
+- [x] Tailored Resume export (.docx with AI rewrites + ATS notes pre-filled)
 
 ---
 

@@ -109,6 +109,15 @@ class EmailTemplates(BaseModel):
     rejection_response: str = Field(description="Professional, gracious reply to a rejection email. Keeps the door open for future opportunities and leaves a positive impression. 3-4 sentences max.")
 
 
+class CompanyProfile(BaseModel):
+    culture_summary: str = Field(description="2-3 sentence summary of the company's culture and work environment based on public knowledge. If the company is obscure, note that and give industry-level context.")
+    work_style: str = Field(description="Work style — 'Remote', 'Hybrid', or 'Onsite', with any known details about the company's policy.")
+    typical_interview_format: str = Field(description="Typical interview process for this company and role — number of rounds, question styles, known practices.")
+    what_they_value: List[str] = Field(description="4-6 qualities, skills, or traits this company consistently looks for in candidates.")
+    red_flags: List[str] = Field(description="2-4 honest caution points — known challenges, culture fit concerns, or role-specific pressures a candidate should be aware of.")
+    prep_tips: List[str] = Field(description="4-6 specific, actionable prep tips tailored to this company and role.")
+
+
 class JobMatch(BaseModel):
     job_number: int = Field(description="Which job this is (1, 2, or 3).")
     job_title: str = Field(description="The job title extracted from the job description.")
@@ -244,6 +253,14 @@ _COMPARISON_SYSTEM = (
     "Never invent experience the candidate doesn't have. Be direct about gaps."
 )
 
+_COMPANY_SYSTEM = (
+    "You are a career coach who has helped hundreds of candidates prepare for interviews at companies of all sizes. "
+    "You provide honest, research-backed profiles — culture, interview format, and what a company values — "
+    "drawn from publicly available knowledge. Be direct about both positives and concerns. "
+    "If the company is not widely known or you have limited information, say so clearly in the culture_summary "
+    "rather than fabricating details. Focus on what genuinely helps the candidate prepare."
+)
+
 
 def _build_cover_letter_prompt(resume: str, job: str) -> str:
     return (
@@ -301,6 +318,22 @@ def _build_linkedin_prompt(resume: str, job: str) -> str:
         "end with what opportunities the candidate is open to\n"
         "3. Top 8-10 skill keywords to add to their LinkedIn Skills section for this target role\n"
         "4. 3-5 specific, actionable tips to strengthen this candidate's LinkedIn profile for recruiters in this field"
+    )
+
+
+def _build_company_prompt(company_name: str, role: str) -> str:
+    role_context = f"for the role of **{role}**" if role.strip() else "for a general role there"
+    return (
+        f"Research the company '{company_name}' and help a job candidate prepare {role_context}.\n\n"
+        "Provide:\n"
+        "1. A culture summary — what it's actually like to work there, based on public knowledge\n"
+        "2. Work style (Remote / Hybrid / Onsite) with any known company policy details\n"
+        "3. Typical interview process — how many rounds, what types of questions, any known quirks\n"
+        "4. Qualities and traits this company consistently values in candidates (be specific)\n"
+        "5. Honest red flags or caution points — pressure, culture challenges, known concerns\n"
+        "6. Specific prep tips for a candidate interviewing at this company for this role\n\n"
+        "If this is a smaller or less-known company, acknowledge limited public data in the culture_summary "
+        "and give thoughtful advice based on company size, industry, and role type."
     )
 
 
@@ -520,6 +553,24 @@ def generate_email_templates(resume: str, job: str) -> EmailTemplates:
         if isinstance(response.parsed, EmailTemplates):
             return response.parsed
         return _parse_from_text(response.text, EmailTemplates)  # type: ignore[arg-type]
+    except AnalyzerError:
+        raise
+    except Exception as exc:
+        raise _handle_api_error(exc)
+
+
+def research_company(company_name: str, role: str = "") -> CompanyProfile:
+    """Research a company and return culture, interview format, and prep tips."""
+    if not company_name.strip():
+        raise AnalyzerError("Please enter a company name to research.")
+    if len(company_name) > 200:
+        raise AnalyzerError("Company name is too long (200 character limit).")
+    client = _client()
+    try:
+        response = _generate(client, _build_company_prompt(company_name, role), _COMPANY_SYSTEM, CompanyProfile)
+        if isinstance(response.parsed, CompanyProfile):
+            return response.parsed
+        return _parse_from_text(response.text, CompanyProfile)  # type: ignore[arg-type]
     except AnalyzerError:
         raise
     except Exception as exc:

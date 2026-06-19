@@ -13,6 +13,7 @@ from analyzer import (
     Analysis,
     AnalyzerError,
     BulletRewrite,
+    CompanyProfile,
     CoverLetter,
     InterviewPrep,
     InterviewQuestion,
@@ -30,6 +31,7 @@ from analyzer import (
     generate_interview_prep,
     generate_linkedin_profile,
     generate_skills_roadmap,
+    research_company,
 )
 
 
@@ -297,3 +299,53 @@ class TestCompareJobs:
             assert isinstance(result, JobComparison)
             # Verify _generate was called (meaning it didn't raise before getting there)
             mock_gen.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# research_company()
+# ---------------------------------------------------------------------------
+
+class TestResearchCompany:
+    @patch("analyzer._client")
+    @patch("analyzer._generate")
+    def test_returns_company_profile(self, mock_gen, mock_client):
+        profile = CompanyProfile(
+            culture_summary="Strong engineering culture, data-driven, high ownership.",
+            work_style="Hybrid — 3 days in office, 2 remote.",
+            typical_interview_format="4 rounds: recruiter screen, technical coding, system design, behavioral.",
+            what_they_value=["Ownership", "Technical depth", "Clear communication", "Bias for action"],
+            red_flags=["High performance bar — demanding environment.", "Promotion can be slow."],
+            prep_tips=[
+                "Prepare STAR answers for behavioral questions.",
+                "Review distributed systems design basics.",
+                "Study the company's engineering blog before the interview.",
+            ],
+        )
+        mock_gen.return_value = _make_response(profile)
+        result = research_company("Google", "Senior Software Engineer")
+        assert isinstance(result, CompanyProfile)
+        assert result.work_style == "Hybrid — 3 days in office, 2 remote."
+        assert len(result.what_they_value) == 4
+
+    @patch("analyzer._client")
+    @patch("analyzer._generate")
+    def test_works_without_role(self, mock_gen, mock_client):
+        profile = CompanyProfile(
+            culture_summary="Fast-paced startup environment.",
+            work_style="Remote-first.",
+            typical_interview_format="3 rounds: intro call, technical, founder interview.",
+            what_they_value=["Autonomy", "Speed"],
+            red_flags=["Early-stage uncertainty."],
+            prep_tips=["Research their product deeply."],
+        )
+        mock_gen.return_value = _make_response(profile)
+        result = research_company("Acme Corp")
+        assert isinstance(result, CompanyProfile)
+
+    def test_raises_on_empty_company_name(self):
+        with pytest.raises(AnalyzerError, match="company name"):
+            research_company("")
+
+    def test_raises_on_whitespace_company_name(self):
+        with pytest.raises(AnalyzerError, match="company name"):
+            research_company("   ")
