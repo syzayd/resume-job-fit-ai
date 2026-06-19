@@ -17,10 +17,10 @@ for _secret_key in ("GEMINI_API_KEY", "GOOGLE_API_KEY"):
         os.environ[_secret_key] = st.secrets[_secret_key]
 
 from analyzer import (
-    Analysis, AnalyzerError, CoverLetter, EmailTemplates, InterviewPrep, LinkedInProfile,
-    ResumeHealth, SkillsRoadmap, analyze, analyze_resume_health, generate_cover_letter,
-    generate_email_templates, generate_interview_prep, generate_linkedin_profile,
-    generate_skills_roadmap,
+    Analysis, AnalyzerError, CompanyProfile, CoverLetter, EmailTemplates, InterviewPrep,
+    LinkedInProfile, ResumeHealth, SkillsRoadmap, analyze, analyze_resume_health,
+    generate_cover_letter, generate_email_templates, generate_interview_prep,
+    generate_linkedin_profile, generate_skills_roadmap, research_company,
 )
 from db import save_application
 
@@ -246,6 +246,70 @@ def export_docx(
         ]:
             doc.add_heading(label, 2)
             doc.add_paragraph(body)
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
+def export_tailored_resume_docx(result: Analysis) -> bytes:
+    """Build a job-tailored resume .docx with AI rewrites substituted for original bullets."""
+    from docx import Document
+    from docx.shared import Pt, RGBColor
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+
+    doc = Document()
+
+    # Contact header placeholder
+    name_para = doc.add_paragraph()
+    name_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    name_run = name_para.add_run("[YOUR NAME]")
+    name_run.bold = True
+    name_run.font.size = Pt(20)
+
+    contact_para = doc.add_paragraph()
+    contact_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    contact_para.add_run(
+        "[your.email@example.com]  ·  [(555) 000-0000]  ·  [linkedin.com/in/yourprofile]  ·  [github.com/yourusername]"
+    )
+
+    doc.add_paragraph()
+
+    # Professional summary from AI analysis
+    doc.add_heading("Professional Summary", 1)
+    doc.add_paragraph(result.summary)
+
+    # Core skills — matched keywords this resume already has
+    if result.matched_keywords:
+        doc.add_heading("Core Skills", 1)
+        doc.add_paragraph(", ".join(result.matched_keywords))
+
+    # Work experience with AI-improved bullets
+    if result.bullet_rewrites:
+        doc.add_heading("Work Experience", 1)
+        exp_header = doc.add_paragraph()
+        exp_header.add_run("[Company Name]").bold = True
+        exp_header.add_run("  |  [Your Title]  |  [Start Date] – [End Date]")
+        for rw in result.bullet_rewrites:
+            doc.add_paragraph(rw.improved, style="List Bullet")
+
+    # Skills to add / close gaps
+    if result.missing_keywords:
+        doc.add_paragraph()
+        doc.add_heading("Skills to Develop / Highlight", 1)
+        skills_note = doc.add_paragraph()
+        skills_note.add_run("Add projects, coursework, or certifications covering: ").italic = True
+        skills_note.add_run(", ".join(result.missing_keywords) + ".")
+
+    # ATS tips as an editor's note
+    if result.ats_tips:
+        doc.add_heading("ATS Optimization Notes", 1)
+        ats_note = doc.add_paragraph()
+        ats_note.add_run(
+            "Before submitting, incorporate the following phrases or sections for better ATS pass-through:"
+        ).italic = True
+        for tip in result.ats_tips:
+            doc.add_paragraph(tip, style="List Bullet")
 
     buf = io.BytesIO()
     doc.save(buf)
@@ -634,6 +698,9 @@ if st.session_state.result:
             render_cover_letter(cover)
 
     with tab_interview:
+        st.caption(
+            "Want to research the company first? Use the **Company Research** page in the sidebar."
+        )
         prep: InterviewPrep | None = st.session_state.interview_prep
         if prep is None:
             if st.button("Generate interview prep", type="primary"):
@@ -725,7 +792,7 @@ if st.session_state.result:
             render_resume_health(rh)
 
     st.divider()
-    _dl_txt, _dl_docx, _ = st.columns([1, 1, 4])
+    _dl_txt, _dl_docx, _dl_resume, _ = st.columns([1, 1, 1, 3])
     with _dl_txt:
         st.download_button(
             label="Download (.txt)",
@@ -755,6 +822,15 @@ if st.session_state.result:
             file_name="resume_analysis.docx",
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             use_container_width=True,
+        )
+    with _dl_resume:
+        st.download_button(
+            label="Tailored Resume (.docx)",
+            data=export_tailored_resume_docx(result),
+            file_name="tailored_resume.docx",
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            use_container_width=True,
+            help="A ready-to-edit resume with AI-improved bullets and ATS notes pre-filled.",
         )
 
     # Save to tracker
