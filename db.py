@@ -1,6 +1,6 @@
 """SQLite persistence layer for the job application tracker.
 
-Stores one row per saved analysis. UI-agnostic — no Streamlit imports.
+Stores one row per saved analysis. UI-agnostic - no Streamlit imports.
 Database file: job_tracker.db in the project root (git-ignored).
 """
 

@@ -1,4 +1,4 @@
-"""Job Application Tracker — save, track, and export your analyses."""
+"""Job Application Tracker - save, track, and export your analyses."""
 
 import os
 
@@ -19,7 +19,7 @@ from db import (
     update_status,
 )
 
-st.set_page_config(page_title="Job Tracker — Resume Job-Fit AI", page_icon="📋", layout="wide")
+st.set_page_config(page_title="Job Tracker - Resume Job-Fit AI", page_icon="📋", layout="wide")
 
 st.title("📋 Job Application Tracker")
 st.caption("Every analysis you save lands here. Track status, take notes, export to CSV.")
@@ -41,7 +41,7 @@ else:
     col_interview.metric("Interviewing", stats["by_status"].get("Interviewing", 0))
     col_offer.metric("Offers", stats["by_status"].get("Offer", 0))
 
-    # Score trend chart — shown when 3+ entries exist
+    # Score trend chart - shown when 3+ entries exist
     history = get_score_history()
     if len(history) >= 3:
         import altair as alt

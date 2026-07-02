@@ -214,12 +214,12 @@ def export_docx(
         doc.add_heading("Quick Wins This Week", 2)
         for win in roadmap.quick_wins:
             doc.add_paragraph(win, style="List Bullet")
-        doc.add_heading("Skill Gaps — Priority Order", 2)
+        doc.add_heading("Skill Gaps - Priority Order", 2)
         for gap in roadmap.gaps:
             doc.add_heading(f"[{gap.importance}] {gap.skill}", 3)
             doc.add_paragraph(gap.how_to_learn)
             for r in gap.resources:
-                doc.add_paragraph(f"{r.name} — {r.provider} ({r.type})", style="List Bullet")
+                doc.add_paragraph(f"{r.name} - {r.provider} ({r.type})", style="List Bullet")
 
     # LinkedIn
     if linkedin:
@@ -279,7 +279,7 @@ def export_tailored_resume_docx(result: Analysis) -> bytes:
     doc.add_heading("Professional Summary", 1)
     doc.add_paragraph(result.summary)
 
-    # Core skills — matched keywords this resume already has
+    # Core skills - matched keywords this resume already has
     if result.matched_keywords:
         doc.add_heading("Core Skills", 1)
         doc.add_paragraph(", ".join(result.matched_keywords))
@@ -418,7 +418,7 @@ def render_skills_roadmap(roadmap: SkillsRoadmap) -> None:
         for win in roadmap.quick_wins:
             st.markdown(f"- {win}")
     st.divider()
-    st.subheader("Skill gaps — priority order")
+    st.subheader("Skill gaps - priority order")
     importance_color = {"High": "#fee2e2", "Medium": "#fef9c3", "Low": "#f0fdf4"}
     importance_fg = {"High": "#991b1b", "Medium": "#854d0e", "Low": "#166534"}
     for gap in roadmap.gaps:
@@ -434,7 +434,7 @@ def render_skills_roadmap(roadmap: SkillsRoadmap) -> None:
             st.write(gap.how_to_learn)
             if gap.resources:
                 for r in gap.resources:
-                    st.markdown(f"- **{r.name}** — {r.provider} _{r.type}_")
+                    st.markdown(f"- **{r.name}** - {r.provider} _{r.type}_")
 
 
 def render_resume_health(health: ResumeHealth) -> None:
@@ -543,7 +543,7 @@ _init()
 
 st.title("Resume Job-Fit AI")
 st.caption(
-    "Paste or upload your resume + a job description — get a fit score, keyword gaps, "
+    "Paste or upload your resume + a job description - get a fit score, keyword gaps, "
     "tailored rewrites, cover letter, interview prep, and a skills roadmap. "
     "Powered by Google Gemini (free tier)."
 )
@@ -627,7 +627,7 @@ if analyze_clicked:
 if st.session_state.result:
     result: Analysis = st.session_state.result
 
-    # "Generate all sections" — runs all 4 AI generators in one click
+    # "Generate all sections" - runs all 4 AI generators in one click
     _todo = [k for k in ("cover_letter", "interview_prep", "skills_roadmap", "linkedin_profile", "email_templates")
              if st.session_state[k] is None]
     if _todo:
@@ -737,7 +737,7 @@ if st.session_state.result:
         if li_profile is None:
             st.caption(
                 "Get an optimized LinkedIn headline, a ready-to-paste About section, "
-                "skills to add, and profile tips — all tailored to this role."
+                "skills to add, and profile tips - all tailored to this role."
             )
             if st.button("Optimize LinkedIn profile", type="primary"):
                 with st.spinner("Optimizing your LinkedIn profile with Gemini..."):
@@ -777,8 +777,8 @@ if st.session_state.result:
         rh: ResumeHealth | None = st.session_state.resume_health
         if rh is None:
             st.caption(
-                "Evaluates your resume on its own — writing quality, quantification, "
-                "verb strength, and length — independent of any specific job."
+                "Evaluates your resume on its own - writing quality, quantification, "
+                "verb strength, and length - independent of any specific job."
             )
             if st.button("Check resume health", type="primary"):
                 with st.spinner("Analyzing your resume with Gemini..."):
@@ -872,5 +872,5 @@ st.caption(
     "Built in public by Zaid Ali Syed "
     "· [Live demo](https://resume-job-fit-ai.streamlit.app) "
     "· [GitHub](https://github.com/syzayd/resume-job-fit-ai) "
-    "· Rewrites stay truthful to your resume — review before using."
+    "· Rewrites stay truthful to your resume - review before using."
 )
