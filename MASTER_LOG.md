@@ -397,3 +397,11 @@ README.md                               # Full feature table, live demo link, ba
 - **Live:** https://resume-job-fit-ai.streamlit.app (Streamlit Community Cloud)
 - **CI:** GitHub Actions — pytest runs on every push to `main`
 - **Tests:** `pytest tests/` — 26 passing, 0 failing
+
+---
+
+## 2026-07-02 - Refinement pass (repo hygiene + unpushed work recovered)
+
+- **Recovered stranded work:** the 2026-06-22 MASTER_LOG commit (399 lines) had never been pushed to GitHub; it goes up with this pass.
+- **Em dash purge (global style rule):** README, app.py, analyzer.py, db.py, and all three pages/ modules cleaned; all files verified parsing and the full suite re-run after the sweep.
+- **Health check:** 26/26 tests passing locally in 1.4s; live Streamlit deployment responding; README's docs/screenshot.png reference verified present.

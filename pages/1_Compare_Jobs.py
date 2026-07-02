@@ -1,4 +1,4 @@
-"""Multi-job comparison page — paste 2-3 job descriptions to see which fits your resume best."""
+"""Multi-job comparison page - paste 2-3 job descriptions to see which fits your resume best."""
 
 import html as _html
 import io
@@ -13,12 +13,12 @@ for _k in ("GEMINI_API_KEY", "GOOGLE_API_KEY"):
 
 from analyzer import AnalyzerError, JobComparison, compare_jobs
 
-st.set_page_config(page_title="Compare Jobs — Resume Job-Fit AI", page_icon="⚖️", layout="wide")
+st.set_page_config(page_title="Compare Jobs - Resume Job-Fit AI", page_icon="⚖️", layout="wide")
 
 st.title("⚖️ Compare Jobs")
 st.caption(
     "Paste your resume once, then paste 2–3 job descriptions. "
-    "Get a ranked comparison — which role fits you best, and why."
+    "Get a ranked comparison - which role fits you best, and why."
 )
 
 # --- Session state -----------------------------------------------------------
@@ -120,7 +120,7 @@ if st.session_state.cmp_result:
     result: JobComparison = st.session_state.cmp_result
 
     st.divider()
-    st.subheader("Results — ranked best fit first")
+    st.subheader("Results - ranked best fit first")
 
     # Recommendation banner
     rec_match = next(
@@ -148,7 +148,7 @@ if st.session_state.cmp_result:
             head_col, score_col = st.columns([5, 1])
             with head_col:
                 st.markdown(
-                    f"### {medal} Job {match.job_number} — {_html.escape(match.job_title)}"
+                    f"### {medal} Job {match.job_number} - {_html.escape(match.job_title)}"
                 )
                 st.caption(_html.escape(match.verdict))
             with score_col:

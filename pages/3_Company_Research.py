@@ -1,4 +1,4 @@
-"""Company Research — powered by Google Gemini.
+"""Company Research - powered by Google Gemini.
 
 Enter a company name and optional role to get a culture profile, interview format,
 what they value, honest red flags, and prep tips.
@@ -16,7 +16,7 @@ for _secret_key in ("GEMINI_API_KEY", "GOOGLE_API_KEY"):
 from analyzer import AnalyzerError, CompanyProfile, research_company
 
 st.set_page_config(
-    page_title="Company Research — Resume Job-Fit AI",
+    page_title="Company Research - Resume Job-Fit AI",
     page_icon="🔍",
     layout="wide",
 )
@@ -24,7 +24,7 @@ st.set_page_config(
 st.title("Company Research")
 st.caption(
     "Enter a company name (and optional role) to get a culture profile, interview format, "
-    "what they value, honest red flags, and specific prep tips — powered by Google Gemini."
+    "what they value, honest red flags, and specific prep tips - powered by Google Gemini."
 )
 
 col_a, col_b = st.columns([2, 1])
@@ -59,7 +59,7 @@ if profile:
     st.divider()
 
     # Culture overview
-    st.subheader(f"Culture — {_html.escape(researched_name)}")
+    st.subheader(f"Culture - {_html.escape(researched_name)}")
     st.write(profile.culture_summary)
 
     col1, col2 = st.columns(2)
@@ -97,5 +97,5 @@ st.caption(
     "Built in public by Zaid Ali Syed "
     "· [Live demo](https://resume-job-fit-ai.streamlit.app) "
     "· [GitHub](https://github.com/syzayd/resume-job-fit-ai) "
-    "· AI-generated — verify key facts before your interview."
+    "· AI-generated - verify key facts before your interview."
 )

@@ -69,26 +69,26 @@ class InterviewPrep(BaseModel):
 
 class Resource(BaseModel):
     name: str = Field(description="Name of the specific course, certification, or project.")
-    provider: str = Field(description="Who offers it — e.g. Coursera, Google, GitHub, LinkedIn Learning.")
+    provider: str = Field(description="Who offers it - e.g. Coursera, Google, GitHub, LinkedIn Learning.")
     type: str = Field(description="One of: Course, Certification, Project, Book, Tutorial.")
 
 
 class SkillGap(BaseModel):
     skill: str = Field(description="The missing skill or technology.")
-    importance: str = Field(description="High, Medium, or Low — how critical this skill is for the target role.")
+    importance: str = Field(description="High, Medium, or Low - how critical this skill is for the target role.")
     how_to_learn: str = Field(description="Concrete 1-2 sentence advice on learning this skill, given the candidate's existing background.")
     resources: List[Resource] = Field(description="2-3 specific resources to acquire this skill.")
 
 
 class SkillsRoadmap(BaseModel):
-    gaps: List[SkillGap] = Field(description="Key skill gaps in priority order — most important first.")
+    gaps: List[SkillGap] = Field(description="Key skill gaps in priority order - most important first.")
     timeline: str = Field(description="Realistic estimate of how long to close the top gaps given this candidate's background.")
     quick_wins: List[str] = Field(description="2-3 things the candidate can do this week to immediately strengthen their profile.")
 
 
 class LinkedInProfile(BaseModel):
-    headline: str = Field(description="Optimized LinkedIn headline (max 220 characters) — keyword-rich, highlights the candidate's unique value for this type of role.")
-    about: str = Field(description="3-4 paragraph LinkedIn About section in first person — achievement-focused, authentic to the resume, ends with a call to action.")
+    headline: str = Field(description="Optimized LinkedIn headline (max 220 characters) - keyword-rich, highlights the candidate's unique value for this type of role.")
+    about: str = Field(description="3-4 paragraph LinkedIn About section in first person - achievement-focused, authentic to the resume, ends with a call to action.")
     skills_to_add: List[str] = Field(description="Top 8-10 LinkedIn skill keywords to add for the target role.")
     profile_tips: List[str] = Field(description="3-5 specific, actionable tips to improve this candidate's LinkedIn profile for the target role.")
 
@@ -98,23 +98,23 @@ class ResumeHealth(BaseModel):
     writing_score: int = Field(description="Clarity, active voice, and conciseness score 0-100.")
     quantification_score: int = Field(description="How well bullets are backed by numbers and outcomes, 0-100.")
     verb_strength_score: int = Field(description="Strength and variety of action verbs, 0-100.")
-    length_assessment: str = Field(description="E.g. 'Ideal (1 page)', 'Too long (3 pages — aim for 1–2)', 'Too short (less than half a page)'.")
-    top_issues: List[str] = Field(description="3-5 most important problems with the resume — specific and observable.")
+    length_assessment: str = Field(description="E.g. 'Ideal (1 page)', 'Too long (3 pages - aim for 1–2)', 'Too short (less than half a page)'.")
+    top_issues: List[str] = Field(description="3-5 most important problems with the resume - specific and observable.")
     quick_fixes: List[str] = Field(description="3-5 concrete changes the candidate can make today to improve the resume.")
 
 
 class EmailTemplates(BaseModel):
     follow_up: str = Field(description="Follow-up email to send 1 week after applying with no response. Professional, concise, re-expresses interest and asks for a status update. 3-4 sentences max.")
-    thank_you: str = Field(description="Thank-you email to send within 24 hours after an interview. Warm, specific — references something concrete discussed in the interview. 3-4 sentences max.")
+    thank_you: str = Field(description="Thank-you email to send within 24 hours after an interview. Warm, specific - references something concrete discussed in the interview. 3-4 sentences max.")
     rejection_response: str = Field(description="Professional, gracious reply to a rejection email. Keeps the door open for future opportunities and leaves a positive impression. 3-4 sentences max.")
 
 
 class CompanyProfile(BaseModel):
     culture_summary: str = Field(description="2-3 sentence summary of the company's culture and work environment based on public knowledge. If the company is obscure, note that and give industry-level context.")
-    work_style: str = Field(description="Work style — 'Remote', 'Hybrid', or 'Onsite', with any known details about the company's policy.")
-    typical_interview_format: str = Field(description="Typical interview process for this company and role — number of rounds, question styles, known practices.")
+    work_style: str = Field(description="Work style - 'Remote', 'Hybrid', or 'Onsite', with any known details about the company's policy.")
+    typical_interview_format: str = Field(description="Typical interview process for this company and role - number of rounds, question styles, known practices.")
     what_they_value: List[str] = Field(description="4-6 qualities, skills, or traits this company consistently looks for in candidates.")
-    red_flags: List[str] = Field(description="2-4 honest caution points — known challenges, culture fit concerns, or role-specific pressures a candidate should be aware of.")
+    red_flags: List[str] = Field(description="2-4 honest caution points - known challenges, culture fit concerns, or role-specific pressures a candidate should be aware of.")
     prep_tips: List[str] = Field(description="4-6 specific, actionable prep tips tailored to this company and role.")
 
 
@@ -140,16 +140,16 @@ _ANALYSIS_SYSTEM = (
     "You are a senior technical recruiter and ATS (applicant tracking system) screening expert. "
     "You assess how well a resume fits a specific job. You are specific, honest, and constructive. "
     "Critically: you NEVER invent experience, skills, or metrics the candidate does not have. "
-    "Bullet rewrites must stay truthful to the original resume — improve clarity, impact, and keyword "
+    "Bullet rewrites must stay truthful to the original resume - improve clarity, impact, and keyword "
     "alignment, and where a real number is unknown, use a clear placeholder like [X] rather than inventing one. "
     "You also estimate realistic market salary ranges based on the role title, required skills, and seniority "
-    "signals in the job description — assume US market if no location is specified."
+    "signals in the job description - assume US market if no location is specified."
 )
 
 _COVER_LETTER_TONE = {
-    "Professional": "Use a formal, polished tone — confident but restrained. No exclamation marks.",
-    "Warm & Enthusiastic": "Use a warm, genuine tone — show authentic excitement for the role without being over-the-top.",
-    "Bold & Direct": "Use a punchy, confident tone — lead with value, cut all filler, make every sentence earn its place.",
+    "Professional": "Use a formal, polished tone - confident but restrained. No exclamation marks.",
+    "Warm & Enthusiastic": "Use a warm, genuine tone - show authentic excitement for the role without being over-the-top.",
+    "Bold & Direct": "Use a punchy, confident tone - lead with value, cut all filler, make every sentence earn its place.",
 }
 
 
@@ -159,7 +159,7 @@ def _cover_letter_system(tone: str) -> str:
         "You are a professional career coach writing tailored cover letters. "
         "You write in first-person from the candidate's perspective. "
         "You NEVER fabricate experience, skills, or projects not present in the resume. "
-        "Keep each paragraph concise and specific — no filler phrases like 'I am excited to apply'. "
+        "Keep each paragraph concise and specific - no filler phrases like 'I am excited to apply'. "
         f"Tone: {instruction}"
     )
 
@@ -181,13 +181,13 @@ def _build_analysis_prompt(resume: str, job: str) -> str:
 _INTERVIEW_SYSTEM = (
     "You are a senior hiring manager and interview coach who has conducted thousands of technical interviews. "
     "You generate highly specific, realistic interview questions based on a candidate's actual resume and the job they are applying for. "
-    "Questions must reflect real gaps and strengths — never generic filler like 'tell me about yourself' unless it is genuinely the most important question. "
+    "Questions must reflect real gaps and strengths - never generic filler like 'tell me about yourself' unless it is genuinely the most important question. "
     "Tips must be grounded in the candidate's real experience, not generic advice."
 )
 
 _ROADMAP_SYSTEM = (
     "You are a technical career coach who builds specific, actionable learning roadmaps. "
-    "You recommend real, named resources (actual courses, certifications, projects) — never vague advice like 'learn Python'. "
+    "You recommend real, named resources (actual courses, certifications, projects) - never vague advice like 'learn Python'. "
     "Prioritize the gaps that will most improve the candidate's chances for this specific role. "
     "Never invent skills the candidate already has. Stay honest about what is missing."
 )
@@ -196,12 +196,12 @@ _LINKEDIN_SYSTEM = (
     "You are a LinkedIn profile optimization expert who has helped thousands of candidates attract recruiter attention. "
     "You write compelling, authentic LinkedIn content grounded only in the candidate's actual experience. "
     "You NEVER fabricate skills, projects, or achievements not present in the resume. "
-    "You know exactly which keywords recruiters and LinkedIn's algorithm surface — and you apply that knowledge concretely."
+    "You know exactly which keywords recruiters and LinkedIn's algorithm surface - and you apply that knowledge concretely."
 )
 
 _RESUME_HEALTH_SYSTEM = (
     "You are a professional resume coach with 20 years of experience reviewing resumes across industries. "
-    "You evaluate resumes on their own merit — writing quality, impact, clarity, and ATS-readiness — "
+    "You evaluate resumes on their own merit - writing quality, impact, clarity, and ATS-readiness - "
     "without comparing to any specific job. You are specific and direct: no vague praise, no invented issues. "
     "All feedback is grounded entirely in what you can observe in the resume text itself."
 )
@@ -223,7 +223,7 @@ def _build_resume_health_prompt(resume: str) -> str:
 
 _EMAIL_SYSTEM = (
     "You are a professional career coach who writes concise, high-impact job-search emails. "
-    "Every email you write is grounded in the candidate's actual resume and the specific role — "
+    "Every email you write is grounded in the candidate's actual resume and the specific role - "
     "no generic filler. Emails should be 3-4 sentences: direct, warm, and professional. "
     "Never fabricate details not present in the resume."
 )
@@ -237,11 +237,11 @@ def _build_email_prompt(resume: str, job: str) -> str:
         "=== CANDIDATE RESUME ===\n"
         f"{resume}\n\n"
         "Write:\n"
-        "1. follow_up — sent 1 week after applying with no response; politely asks for a status update\n"
-        "2. thank_you — sent within 24h of an interview; references at least one specific topic likely "
+        "1. follow_up - sent 1 week after applying with no response; politely asks for a status update\n"
+        "2. thank_you - sent within 24h of an interview; references at least one specific topic likely "
         "discussed given the role and resume\n"
-        "3. rejection_response — a gracious, door-open reply to a rejection; professional and memorable\n"
-        "Each email: 3-4 sentences, no subject line, no salutation boilerplate — body only."
+        "3. rejection_response - a gracious, door-open reply to a rejection; professional and memorable\n"
+        "Each email: 3-4 sentences, no subject line, no salutation boilerplate - body only."
     )
 
 
@@ -249,13 +249,13 @@ _COMPARISON_SYSTEM = (
     "You are a senior technical recruiter who has reviewed thousands of applications. "
     "You compare a single resume against multiple job descriptions and give a clear, honest ranking. "
     "You extract the actual job title from each job description. "
-    "Scores are relative and calibrated — if a resume fits all jobs well, scores should still differentiate them. "
+    "Scores are relative and calibrated - if a resume fits all jobs well, scores should still differentiate them. "
     "Never invent experience the candidate doesn't have. Be direct about gaps."
 )
 
 _COMPANY_SYSTEM = (
     "You are a career coach who has helped hundreds of candidates prepare for interviews at companies of all sizes. "
-    "You provide honest, research-backed profiles — culture, interview format, and what a company values — "
+    "You provide honest, research-backed profiles - culture, interview format, and what a company values - "
     "drawn from publicly available knowledge. Be direct about both positives and concerns. "
     "If the company is not widely known or you have limited information, say so clearly in the culture_summary "
     "rather than fabricating details. Focus on what genuinely helps the candidate prepare."
@@ -272,7 +272,7 @@ def _build_cover_letter_prompt(resume: str, job: str) -> str:
         "Rules:\n"
         "- Three paragraphs: opening, body (skills match), closing.\n"
         "- Only reference projects and skills that actually appear in the resume.\n"
-        "- Be specific and concrete — reference the job title and at least two requirements.\n"
+        "- Be specific and concrete - reference the job title and at least two requirements.\n"
         "- No generic filler. No invented metrics. Placeholders like [Company Name] are fine."
     )
 
@@ -313,8 +313,8 @@ def _build_linkedin_prompt(resume: str, job: str) -> str:
         "=== CANDIDATE RESUME ===\n"
         f"{resume}\n\n"
         "Produce:\n"
-        "1. An optimized LinkedIn headline (max 220 chars) — specific, keyword-rich, value-focused\n"
-        "2. A 3-4 paragraph LinkedIn About section in first-person — start with a hook, include concrete achievements, "
+        "1. An optimized LinkedIn headline (max 220 chars) - specific, keyword-rich, value-focused\n"
+        "2. A 3-4 paragraph LinkedIn About section in first-person - start with a hook, include concrete achievements, "
         "end with what opportunities the candidate is open to\n"
         "3. Top 8-10 skill keywords to add to their LinkedIn Skills section for this target role\n"
         "4. 3-5 specific, actionable tips to strengthen this candidate's LinkedIn profile for recruiters in this field"
@@ -326,11 +326,11 @@ def _build_company_prompt(company_name: str, role: str) -> str:
     return (
         f"Research the company '{company_name}' and help a job candidate prepare {role_context}.\n\n"
         "Provide:\n"
-        "1. A culture summary — what it's actually like to work there, based on public knowledge\n"
+        "1. A culture summary - what it's actually like to work there, based on public knowledge\n"
         "2. Work style (Remote / Hybrid / Onsite) with any known company policy details\n"
-        "3. Typical interview process — how many rounds, what types of questions, any known quirks\n"
+        "3. Typical interview process - how many rounds, what types of questions, any known quirks\n"
         "4. Qualities and traits this company consistently values in candidates (be specific)\n"
-        "5. Honest red flags or caution points — pressure, culture challenges, known concerns\n"
+        "5. Honest red flags or caution points - pressure, culture challenges, known concerns\n"
         "6. Specific prep tips for a candidate interviewing at this company for this role\n\n"
         "If this is a smaller or less-known company, acknowledge limited public data in the culture_summary "
         "and give thoughtful advice based on company size, industry, and role type."
@@ -348,7 +348,7 @@ def _build_comparison_prompt(resume: str, jobs: List[str]) -> str:
         f"{jobs_block}\n\n"
         "For each job:\n"
         "- Extract the actual job title from the description.\n"
-        "- Score fit 0-100 (be calibrated — scores should differentiate even if all fit well).\n"
+        "- Score fit 0-100 (be calibrated - scores should differentiate even if all fit well).\n"
         "- List 2-3 resume strengths that directly match that job's requirements.\n"
         "- List 2-3 most important gaps for that job.\n"
         "- Write one honest verdict sentence.\n\n"
@@ -524,7 +524,7 @@ def generate_linkedin_profile(resume: str, job: str) -> LinkedInProfile:
 
 
 def analyze_resume_health(resume: str) -> ResumeHealth:
-    """Evaluate the resume standalone — no job description needed."""
+    """Evaluate the resume standalone - no job description needed."""
     if not resume.strip():
         raise AnalyzerError("Please paste your resume before checking its health.")
     if len(resume) > MAX_INPUT_CHARS:
