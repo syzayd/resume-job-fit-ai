@@ -387,7 +387,7 @@ README.md                               # Full feature table, live demo link, ba
 | SQLite over any hosted DB | Zero infra, no config, works on Streamlit Cloud with ephemeral note |
 | Pydantic schemas for all Gemini responses | Ensures structured output; allows mocking in tests without real API calls |
 | `MAX_INPUT_CHARS = 8000` | Balances free-tier token limits vs. real-world resume/JD length |
-| Auto-commit git hooks active | Every file save triggers an "auto: update X" commit — must `git reset --soft HEAD~N` before pushing |
+| Auto-commits come from Claude Code, not repo git hooks | `.git/hooks` holds only samples (verified 2026-07-02); the "auto: update X" commits are made by a global Claude Code PostToolUse hook in settings.json. Safe to push as-is; `git reset --soft HEAD~N` only if a cleaner history is wanted |
 
 ---
 
