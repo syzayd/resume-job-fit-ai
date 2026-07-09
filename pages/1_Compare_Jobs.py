@@ -2,14 +2,13 @@
 
 import html as _html
 import io
-import os
 from pathlib import Path
 
 import streamlit as st
 
-for _k in ("GEMINI_API_KEY", "GOOGLE_API_KEY"):
-    if _k in st.secrets and not os.environ.get(_k):
-        os.environ[_k] = st.secrets[_k]
+from secrets_bridge import load_secrets_into_env
+
+load_secrets_into_env(("GEMINI_API_KEY", "GOOGLE_API_KEY"))
 
 from analyzer import AnalyzerError, JobComparison, compare_jobs
 

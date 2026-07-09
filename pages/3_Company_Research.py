@@ -5,13 +5,12 @@ what they value, honest red flags, and prep tips.
 """
 
 import html as _html
-import os
 
 import streamlit as st
 
-for _secret_key in ("GEMINI_API_KEY", "GOOGLE_API_KEY"):
-    if _secret_key in st.secrets and not os.environ.get(_secret_key):
-        os.environ[_secret_key] = st.secrets[_secret_key]
+from secrets_bridge import load_secrets_into_env
+
+load_secrets_into_env(("GEMINI_API_KEY", "GOOGLE_API_KEY"))
 
 from analyzer import AnalyzerError, CompanyProfile, research_company
 
