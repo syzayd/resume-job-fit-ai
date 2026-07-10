@@ -5,16 +5,15 @@ Run: streamlit run app.py
 
 import html as _html
 import io
-import os
 from pathlib import Path
 
 import streamlit as st
 
+from secrets_bridge import load_secrets_into_env
+
 # Streamlit Community Cloud stores secrets in st.secrets, not env vars.
 # Inject them into os.environ so analyzer.py's os.environ.get() calls work on Cloud.
-for _secret_key in ("GEMINI_API_KEY", "GOOGLE_API_KEY"):
-    if _secret_key in st.secrets and not os.environ.get(_secret_key):
-        os.environ[_secret_key] = st.secrets[_secret_key]
+load_secrets_into_env(("GEMINI_API_KEY", "GOOGLE_API_KEY"))
 
 from analyzer import (
     Analysis, AnalyzerError, CompanyProfile, CoverLetter, EmailTemplates, InterviewPrep,
