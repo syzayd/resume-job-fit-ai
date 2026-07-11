@@ -9,7 +9,9 @@ Built to answer a real question every applicant has: *"How well does my resume a
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://resume-job-fit-ai.streamlit.app)
 [![CI](https://github.com/syzayd/resume-job-fit-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/syzayd/resume-job-fit-ai/actions/workflows/ci.yml)
 
-![Resume Job-Fit AI screenshot](docs/screenshot.png)
+![Resume Job-Fit AI - a real scoring run: paste a JD + resume, get a fit score, salary range, and keyword gaps](docs/demo-scoring.gif)
+
+*A real recorded run on the live app (no edits): an AI-internship JD scored against a real resume - 85/100 with matched/missing keywords.*
 
 ---
 
