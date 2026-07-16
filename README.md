@@ -8,6 +8,7 @@ Built to answer a real question every applicant has: *"How well does my resume a
 
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://resume-job-fit-ai.streamlit.app)
 [![CI](https://github.com/syzayd/resume-job-fit-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/syzayd/resume-job-fit-ai/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/python-3.14-blue)
 
 ![Resume Job-Fit AI - a real scoring run: paste a JD + resume, get a fit score, salary range, and keyword gaps](docs/demo-scoring.gif)
 
@@ -105,7 +106,8 @@ resume-job-fit-ai/
 │   ├── 2_Job_Tracker.py          # Application tracker page
 │   └── 3_Company_Research.py     # Company culture, interview format, and prep tips
 ├── tests/
-│   └── test_analyzer.py          # 26 unit tests (Gemini mocked)
+│   ├── test_analyzer.py          # 26 unit tests (Gemini mocked)
+│   └── test_secrets_bridge.py    # 3 unit tests (Streamlit secrets shim)
 ├── db.py                         # SQLite persistence layer
 ├── docs/
 │   └── screenshot.png
